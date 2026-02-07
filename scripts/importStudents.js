@@ -41,9 +41,16 @@ function parseRegistrationNumber(regNo) {
     const sectionPart = regNo.substring(4, 6);
     const section = sectionPart === '1A' ? 'A' : sectionPart === '5A' ? 'A' : 'A';
 
-    // Logic matching utils/branchDetector.ts (2025-26 Academic Year)
-    const startYearPrefix = 25;
-    let year = startYearPrefix - parseInt(yearPrefix, 10) + 1;
+    // Logic matching utils/branchDetector.ts (Dynamic System Date)
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear() % 100;
+
+    let year = currentYear - parseInt(yearPrefix, 10);
+
+    // If Academic Year started (June 5+), add 1
+    if (currentDate.getMonth() >= 5) {
+        year += 1;
+    }
 
     // Lateral Entry (+1 Year)
     if (sectionPart === '5A') {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -34,7 +34,8 @@ function AdminDashboard() {
     const [students, setStudents] = useState<Student[]>([]);
     const [faculty, setFaculty] = useState<Faculty[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'students' | 'faculty'>('students');
+    const [activeTab, setActiveTab] = useState<'students' | 'faculty' | 'activity'>('students');
+    const [logs, setLogs] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterBranch, setFilterBranch] = useState('all');
     const [darkMode, setDarkMode] = useState(false);
@@ -77,6 +78,27 @@ function AdminDashboard() {
                 ...doc.data()
             })) as Faculty[];
             setFaculty(facultyData);
+
+            // Fetch Logins
+            try {
+                const logsQuery = query(
+                    collection(db, 'admin/logs/logins'),
+                    orderBy('timestamp', 'desc'),
+                    limit(50)
+                );
+                const logsSnapshot = await getDocs(logsQuery);
+                const logsData = logsSnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        ...data,
+                        timestamp: data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp)
+                    };
+                });
+                setLogs(logsData);
+            } catch (e) {
+                console.error('Error fetching logs:', e);
+            }
 
         } catch (error) {
             console.error('Error fetching data:', error);
@@ -251,6 +273,15 @@ function AdminDashboard() {
                                     >
                                         Faculty ({faculty.length})
                                     </button>
+                                    <button
+                                        onClick={() => setActiveTab('activity')}
+                                        className={`px-4 py-2 font-medium rounded-lg transition-colors ${activeTab === 'activity'
+                                            ? 'bg-blue-600 text-white'
+                                            : 'text-gray-600 hover:bg-gray-100'
+                                            }`}
+                                    >
+                                        Activity Logs
+                                    </button>
                                 </div>
 
                                 <div className="flex gap-4">
@@ -358,7 +389,7 @@ function AdminDashboard() {
                                                 )}
                                             </tbody>
                                         </table>
-                                    ) : (
+                                    ) : activeTab === 'faculty' ? (
                                         <table className="min-w-full divide-y divide-gray-200">
                                             <thead className="bg-gray-50">
                                                 <tr>
@@ -405,6 +436,57 @@ function AdminDashboard() {
                                                             </td>
                                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                                 {member.mobileNumber || '-'}
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    ) : (
+                                        <table className="min-w-full divide-y divide-gray-200">
+                                            <thead className="bg-gray-50">
+                                                <tr>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Time
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        User
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Role
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Details
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="bg-white divide-y divide-gray-200">
+                                                {logs.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                                                            No activity logs found
+                                                        </td>
+                                                    </tr>
+                                                ) : (
+                                                    logs.map((log) => (
+                                                        <tr key={log.id} className="hover:bg-gray-50">
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                                {log.timestamp instanceof Date ? log.timestamp.toLocaleString() : 'Just now'}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <div className="text-sm font-medium text-gray-900">{log.name || 'Unknown User'}</div>
+                                                                <div className="text-xs text-gray-500">{log.email}</div>
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${log.role === 'faculty'
+                                                                        ? 'bg-secondary-100 text-secondary-800'
+                                                                        : 'bg-primary-100 text-primary-800'
+                                                                    }`}>
+                                                                    {log.role}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                                Login Success
                                                             </td>
                                                         </tr>
                                                     ))

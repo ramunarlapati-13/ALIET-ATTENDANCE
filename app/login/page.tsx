@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import RoleSelectionModal from '@/components/auth/RoleSelectionModal';
 import { GraduationCap, Building2, Mail, Lock, User, Phone } from 'lucide-react';
 import Image from 'next/image';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import studentData from '@/data/students.json';
 
@@ -92,6 +92,19 @@ export default function LoginPage() {
             // For student login, we'll use registration number as email format
             const email = `${studentForm.registrationNumber}@aliet.edu`;
             await signIn(email, studentForm.password);
+
+            // Log activity
+            try {
+                await addDoc(collection(db, 'admin/logs/logins'), {
+                    email,
+                    role: 'student',
+                    name: studentName || 'Unknown Student',
+                    timestamp: new Date()
+                });
+            } catch (e) {
+                console.error('Logging failed', e);
+            }
+
             router.push('/dashboard/student');
         } catch (err: any) {
             // Check if student exists in college list but account not created
@@ -117,6 +130,19 @@ export default function LoginPage() {
 
         try {
             await signIn(institutionalForm.email, institutionalForm.password);
+
+            // Log activity
+            try {
+                await addDoc(collection(db, 'admin/logs/logins'), {
+                    email: institutionalForm.email,
+                    role: 'faculty',
+                    name: 'Faculty Member',
+                    timestamp: new Date()
+                });
+            } catch (e) {
+                console.error('Logging failed', e);
+            }
+
             // Will redirect based on user role in ProtectedRoute
             router.push('/dashboard');
         } catch (err: any) {
