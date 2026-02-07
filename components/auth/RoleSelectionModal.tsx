@@ -1,0 +1,378 @@
+'use client';
+
+import { useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { UserRole } from '@/types';
+import { X } from 'lucide-react';
+import { detectBranchInfo } from '@/utils/branchDetector';
+import studentData from '@/data/students.json';
+
+interface RoleSelectionModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onComplete: () => void;
+}
+
+export default function RoleSelectionModal({
+    isOpen,
+    onClose,
+    onComplete,
+}: RoleSelectionModalProps) {
+    const { updateUserProfile } = useAuth();
+    const [step, setStep] = useState<'role' | 'details'>('role');
+    const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
+    const [formData, setFormData] = useState({
+        name: '',
+        registrationNumber: '',
+        employeeId: '',
+        mobileNumber: '',
+        department: '',
+        branch: '',
+        section: '',
+        year: 1,
+    });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [branchWarning, setBranchWarning] = useState('');
+    const [entryType, setEntryType] = useState<string | undefined>('');
+
+    if (!isOpen) return null;
+
+    const handleRoleSelect = (role: UserRole) => {
+        setSelectedRole(role);
+        setStep('details');
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+
+        try {
+            const profileData: any = {
+                role: selectedRole,
+                name: formData.name,
+                mobileNumber: formData.mobileNumber,
+            };
+
+            if (selectedRole === 'student') {
+                profileData.registrationNumber = formData.registrationNumber || '';
+                profileData.department = formData.department || '';
+                profileData.branch = formData.branch || '';
+                profileData.section = formData.section || '';
+                profileData.year = formData.year || 1;
+            } else {
+                profileData.employeeId = formData.employeeId || '';
+                profileData.department = formData.department || '';
+            }
+
+            await updateUserProfile(profileData);
+            onComplete();
+        } catch (err: any) {
+            setError(err.message || 'Failed to update profile');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-4 md:p-6 relative">
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                >
+                    <X className="w-5 h-5" />
+                </button>
+
+                {step === 'role' ? (
+                    <div>
+                        <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
+                            Select Your Role
+                        </h2>
+                        <p className="text-gray-600 dark:text-gray-300 mb-6">
+                            Please select your role to continue
+                        </p>
+
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => handleRoleSelect('student')}
+                                className="w-full p-4 border-2 border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors text-left"
+                            >
+                                <div className="font-semibold text-gray-900 dark:text-white">Student</div>
+                                <div className="text-sm text-gray-600 dark:text-gray-400">
+                                    View attendance, marks, and fees
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={() => handleRoleSelect('faculty')}
+                                className="w-full p-4 border-2 border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors text-left"
+                            >
+                                <div className="font-semibold text-gray-900 dark:text-white">Faculty</div>
+                                <div className="text-sm text-gray-600 dark:text-gray-400">
+                                    Mark attendance and manage classes
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={() => handleRoleSelect('hod')}
+                                className="w-full p-4 border-2 border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors text-left"
+                            >
+                                <div className="font-semibold text-gray-900 dark:text-white">
+                                    Head of Department
+                                </div>
+                                <div className="text-sm text-gray-600 dark:text-gray-400">
+                                    Oversee department performance
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={() => handleRoleSelect('admin')}
+                                className="w-full p-4 border-2 border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors text-left"
+                            >
+                                <div className="font-semibold text-gray-900 dark:text-white">
+                                    Administrator
+                                </div>
+                                <div className="text-sm text-gray-600 dark:text-gray-400">
+                                    Full system authority
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div>
+                        <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
+                            Complete Your Profile
+                        </h2>
+                        <p className="text-gray-600 dark:text-gray-300 mb-6">
+                            Role: <span className="font-semibold capitalize">{selectedRole}</span>
+                        </p>
+
+                        {error && (
+                            <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg">
+                                {error}
+                            </div>
+                        )}
+
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                                    Full Name *
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    className="input-field"
+                                />
+                            </div>
+
+                            {selectedRole === 'student' ? (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                                            Registration Number *
+                                        </label>
+
+                                        <input
+                                            type="text"
+                                            required
+                                            value={formData.registrationNumber}
+                                            onChange={(e) => {
+                                                const newRegNo = e.target.value.toUpperCase();
+                                                const { data: info, warning, entryType, calculatedYear } = detectBranchInfo(newRegNo);
+
+                                                setBranchWarning(warning || '');
+                                                setEntryType(entryType);
+
+                                                // Auto-fill Name from Registry
+                                                const foundName = (studentData as Record<string, string>)[newRegNo];
+
+                                                setFormData({
+                                                    ...formData,
+                                                    registrationNumber: newRegNo,
+                                                    name: foundName || formData.name, // Only overwrite if found
+                                                    branch: info?.branch || formData.branch,
+                                                    department: info?.branch || formData.department,
+                                                    year: calculatedYear || formData.year
+                                                });
+                                            }}
+                                            className="input-field"
+                                        />
+                                        {branchWarning && (
+                                            <p className="text-red-500 text-xs mt-1">{branchWarning}</p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                                            Department *
+                                        </label>
+                                        <select
+                                            required
+                                            value={formData.department}
+                                            onChange={(e) =>
+                                                setFormData({ ...formData, department: e.target.value })
+                                            }
+                                            className="input-field"
+                                        >
+                                            <option value="">Select Department</option>
+                                            <option value="CSE">Computer Science (CSE)</option>
+                                            <option value="ECE">Electronics & Communication (ECE)</option>
+                                            <option value="EEE">Electrical & Electronics (EEE)</option>
+                                            <option value="MECH">Mechanical (MECH)</option>
+                                            <option value="CIVIL">Civil Engineering (CIVIL)</option>
+                                            <option value="IT">Information Technology (IT)</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                                                Branch *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                required
+                                                value={formData.branch}
+                                                onChange={(e) =>
+                                                    setFormData({ ...formData, branch: e.target.value })
+                                                }
+                                                className="input-field"
+                                                placeholder="e.g., CSE"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                                                Section *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                required
+                                                value={formData.section}
+                                                onChange={(e) =>
+                                                    setFormData({ ...formData, section: e.target.value })
+                                                }
+                                                className="input-field"
+                                                placeholder="e.g., A"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                                            Year *
+                                        </label>
+                                        <select
+                                            required
+                                            value={formData.year}
+                                            onChange={(e) =>
+                                                setFormData({ ...formData, year: parseInt(e.target.value) })
+                                            }
+                                            className="input-field"
+                                        >
+                                            <option value={1}>1st Year</option>
+                                            <option value={2}>2nd Year</option>
+                                            <option value={3}>3rd Year</option>
+                                            <option value={4}>4th Year</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                                            Entry Level
+                                        </label>
+                                        <input
+                                            type="text"
+                                            readOnly
+                                            disabled
+                                            value={entryType || ''}
+                                            className="input-field bg-gray-50 dark:bg-gray-800 text-gray-500 cursor-not-allowed"
+                                            placeholder="Auto-detected (e.g., Regular)"
+                                        />
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                                            Employee ID *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={formData.employeeId}
+                                            onChange={(e) =>
+                                                setFormData({ ...formData, employeeId: e.target.value })
+                                            }
+                                            className="input-field"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                                            Department *
+                                        </label>
+                                        <select
+                                            required
+                                            value={formData.department}
+                                            onChange={(e) =>
+                                                setFormData({ ...formData, department: e.target.value })
+                                            }
+                                            className="input-field"
+                                        >
+                                            <option value="">Select Department</option>
+                                            <option value="CSE">Computer Science (CSE)</option>
+                                            <option value="ECE">Electronics & Communication (ECE)</option>
+                                            <option value="EEE">Electrical & Electronics (EEE)</option>
+                                            <option value="MECH">Mechanical (MECH)</option>
+                                            <option value="CIVIL">Civil Engineering (CIVIL)</option>
+                                            <option value="IT">Information Technology (IT)</option>
+                                        </select>
+                                    </div>
+                                </>
+                            )}
+
+                            <div>
+                                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                                    Mobile Number *
+                                </label>
+                                <input
+                                    type="tel"
+                                    required
+                                    value={formData.mobileNumber}
+                                    onChange={(e) =>
+                                        setFormData({ ...formData, mobileNumber: e.target.value })
+                                    }
+                                    className="input-field"
+                                    placeholder="10-digit mobile number"
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setStep('role')}
+                                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                    disabled={loading}
+                                >
+                                    Back
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 btn-primary"
+                                    disabled={loading}
+                                >
+                                    {loading ? 'Saving...' : 'Complete'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
