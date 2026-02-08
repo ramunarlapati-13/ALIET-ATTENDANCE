@@ -41,29 +41,54 @@ export default function AttendancePage() {
     }, [currentUser]);
 
     const loadRecentSubmissions = async () => {
-        if (!currentUser) return;
+        if (!currentUser) {
+            console.log('loadRecentSubmissions: No current user');
+            return;
+        }
+
+        console.log('loadRecentSubmissions: Starting to load for user:', currentUser.uid);
 
         try {
-            // Query all recent attendance records and filter by facultyId client-side
-            // This avoids needing a composite index
+            // Query without orderBy to avoid index requirement
+            // We'll sort client-side instead
             const q = query(
                 collection(db, 'attendance'),
-                orderBy('timestamp', 'desc'),
-                limit(50) // Get more to filter client-side
+                limit(100) // Get recent records
             );
 
+            console.log('loadRecentSubmissions: Executing query...');
             const snapshot = await getDocs(q);
-            const submissions = snapshot.docs
-                .map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }))
-                .filter((sub: any) => sub.facultyId === currentUser.uid)
-                .slice(0, 10); // Take only first 10 after filtering
+            console.log('loadRecentSubmissions: Got', snapshot.docs.length, 'total documents');
 
+            const allDocs = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+
+            console.log('loadRecentSubmissions: Sample doc:', allDocs[0]);
+
+            // Filter by current faculty and sort by timestamp
+            const submissions = allDocs
+                .filter((sub: any) => {
+                    const match = sub.facultyId === currentUser.uid;
+                    if (match) {
+                        console.log('loadRecentSubmissions: Found matching submission:', sub.id);
+                    }
+                    return match;
+                })
+                .sort((a: any, b: any) => {
+                    // Sort by timestamp descending (newest first)
+                    const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : 0;
+                    const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : 0;
+                    return timeB - timeA;
+                })
+                .slice(0, 10); // Take only first 10
+
+            console.log('loadRecentSubmissions: Filtered to', submissions.length, 'submissions for this faculty');
             setRecentSubmissions(submissions);
         } catch (error) {
             console.error('Error loading recent submissions:', error);
+            alert('Failed to load recent submissions. Check console for details.');
         }
     };
 
@@ -200,13 +225,18 @@ export default function AttendancePage() {
             const docId = `${attendanceDate}_${selectedBranch}_${selectedYear}_${selectedSection}`;
             const attendanceRef = doc(db, 'attendance', docId);
 
-            // Save to Firestore
-            await setDoc(attendanceRef, {
+            // Debug: Check user ID
+            console.log('Submitting attendance - currentUser:', currentUser);
+            console.log('currentUser.uid:', currentUser.uid);
+            const facultyId = currentUser.uid || currentUser.email || 'unknown';
+            console.log('Using facultyId:', facultyId);
+
+            const attendanceData = {
                 date: attendanceDate,
                 branch: selectedBranch,
                 year: selectedYear,
                 section: selectedSection,
-                facultyId: currentUser.uid || 'unknown',
+                facultyId: facultyId,
                 facultyName: currentUser.name || 'Faculty',
                 records: finalRecords,
                 stats: {
@@ -216,7 +246,25 @@ export default function AttendancePage() {
                 },
                 timestamp: serverTimestamp(),
                 lastModified: isEditMode ? serverTimestamp() : null
+            };
+
+            // 1. Save to Firestore (for analytics and historical data)
+            await setDoc(attendanceRef, attendanceData);
+
+            // 2. Save to Realtime Database (for live/current data)
+            const { realtimeDb } = await import('@/lib/firebase/config');
+            const { ref, set } = await import('firebase/database');
+
+            const rtdbPath = `attendance/${attendanceDate}/${selectedBranch}/${selectedYear}/${selectedSection}`;
+            const rtdbRef = ref(realtimeDb, rtdbPath);
+
+            await set(rtdbRef, {
+                ...attendanceData,
+                timestamp: Date.now(), // Use numeric timestamp for RTDB
+                lastModified: isEditMode ? Date.now() : null
             });
+
+            console.log('Saved to both Firestore and Realtime Database');
 
             // Create Log Entry (only for new submissions, not edits)
             if (!isEditMode) {

@@ -53,6 +53,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (userDoc.exists()) {
                     let userData = userDoc.data() as User;
 
+                    // CRITICAL: Ensure uid is set from Firebase Auth user
+                    // Firestore data doesn't include the document ID by default
+                    userData.uid = user.uid;
+
                     // Ensure role exists (fallback for legacy or broken formatting)
                     if (!userData.role) userData.role = 'student';
 
