@@ -20,7 +20,7 @@ export default function RoleSelectionModal({
     onClose,
     onComplete,
 }: RoleSelectionModalProps) {
-    const { updateUserProfile, currentUser } = useAuth();
+    const { updateUserProfile, currentUser, firebaseUser } = useAuth();
     const [step, setStep] = useState<'role' | 'details'>('role');
     const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
     const [formData, setFormData] = useState({
@@ -39,6 +39,9 @@ export default function RoleSelectionModal({
     const [branchWarning, setBranchWarning] = useState('');
     const [entryType, setEntryType] = useState<string | undefined>('');
     const [mobileNumberLocked, setMobileNumberLocked] = useState(false);
+
+    const userEmail = currentUser?.email || firebaseUser?.email;
+    const isAdminEmail = userEmail === 'zestacademyonline@gmail.com';
 
     useEffect(() => {
         // Check if mobile number was already updated
@@ -184,17 +187,7 @@ export default function RoleSelectionModal({
                                 </div>
                             </button>
 
-                            <button
-                                onClick={() => handleRoleSelect('admin')}
-                                className="w-full p-4 border-2 border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors text-left"
-                            >
-                                <div className="font-semibold text-gray-900 dark:text-white">
-                                    Administrator
-                                </div>
-                                <div className="text-sm text-gray-600 dark:text-gray-400">
-                                    Full system authority
-                                </div>
-                            </button>
+
                         </div>
                     </div>
                 ) : (
@@ -213,6 +206,43 @@ export default function RoleSelectionModal({
                         )}
 
                         <form onSubmit={handleSubmit} className="space-y-4">
+                            {selectedRole === 'student' && (
+                                <div>
+                                    <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                                        Registration Number *
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        required
+                                        value={formData.registrationNumber}
+                                        onChange={(e) => {
+                                            const newRegNo = e.target.value.toUpperCase();
+                                            const { data: info, warning, entryType, calculatedYear } = detectBranchInfo(newRegNo);
+
+                                            setBranchWarning(warning || '');
+                                            setEntryType(entryType);
+
+                                            // Auto-fill Name from Registry
+                                            const foundName = (studentData as Record<string, string>)[newRegNo];
+
+                                            setFormData({
+                                                ...formData,
+                                                registrationNumber: newRegNo,
+                                                name: foundName || formData.name, // Only overwrite if found
+                                                branch: info?.branch || formData.branch,
+                                                department: info?.branch || formData.department,
+                                                year: calculatedYear || formData.year
+                                            });
+                                        }}
+                                        className="input-field"
+                                    />
+                                    {branchWarning && (
+                                        <p className="text-red-500 text-xs mt-1">{branchWarning}</p>
+                                    )}
+                                </div>
+                            )}
+
                             <div>
                                 <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
                                     Full Name *
@@ -228,40 +258,7 @@ export default function RoleSelectionModal({
 
                             {selectedRole === 'student' ? (
                                 <>
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                                            Registration Number *
-                                        </label>
 
-                                        <input
-                                            type="text"
-                                            required
-                                            value={formData.registrationNumber}
-                                            onChange={(e) => {
-                                                const newRegNo = e.target.value.toUpperCase();
-                                                const { data: info, warning, entryType, calculatedYear } = detectBranchInfo(newRegNo);
-
-                                                setBranchWarning(warning || '');
-                                                setEntryType(entryType);
-
-                                                // Auto-fill Name from Registry
-                                                const foundName = (studentData as Record<string, string>)[newRegNo];
-
-                                                setFormData({
-                                                    ...formData,
-                                                    registrationNumber: newRegNo,
-                                                    name: foundName || formData.name, // Only overwrite if found
-                                                    branch: info?.branch || formData.branch,
-                                                    department: info?.branch || formData.department,
-                                                    year: calculatedYear || formData.year
-                                                });
-                                            }}
-                                            className="input-field"
-                                        />
-                                        {branchWarning && (
-                                            <p className="text-red-500 text-xs mt-1">{branchWarning}</p>
-                                        )}
-                                    </div>
 
                                     <div>
                                         <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">

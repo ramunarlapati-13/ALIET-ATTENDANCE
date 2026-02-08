@@ -3,6 +3,7 @@
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AnnouncementTicker from '@/components/announcements/AnnouncementTicker';
 import { useAuth } from '@/context/AuthContext';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     LayoutDashboard,
@@ -12,11 +13,13 @@ import {
     User,
     LogOut,
     Bell,
+    Lock,
 } from 'lucide-react';
 
 export default function StudentDashboard() {
     const { currentUser, signOut } = useAuth();
     const router = useRouter();
+
 
     const handleSignOut = async () => {
         await signOut();
@@ -60,6 +63,9 @@ export default function StudentDashboard() {
 
                 {/* Main Content */}
                 <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    {/* Security Notice */}
+
+
                     {/* Welcome Banner */}
                     <div className="bg-gradient-to-r from-primary-600 to-secondary-600 rounded-lg p-6 mb-8 text-white">
                         <h2 className="text-2xl font-bold mb-2">Welcome back, {currentUser?.name}!</h2>
@@ -164,6 +170,8 @@ export default function StudentDashboard() {
                     </div>
                 </main>
             </div>
-        </ProtectedRoute>
+
+
+        </ProtectedRoute >
     );
 }

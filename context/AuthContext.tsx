@@ -10,8 +10,9 @@ import {
     signOut as firebaseSignOut,
     onAuthStateChanged,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
+import studentData from '@/data/students.json';
 import { User, UserRole } from '@/types';
 
 interface AuthContextType {
@@ -35,6 +36,8 @@ export function useAuth() {
     return context;
 }
 
+const ADMIN_EMAIL = 'zestacademyonline@gmail.com';
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
@@ -48,9 +51,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 // Fetch user profile from Firestore
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
                 if (userDoc.exists()) {
-                    setCurrentUser(userDoc.data() as User);
+                    let userData = userDoc.data() as User;
+
+                    // Ensure role exists (fallback for legacy or broken formatting)
+                    if (!userData.role) userData.role = 'student';
+
+                    // Sync email if Auth email changed (e.g. verified)
+                    if (user.email && userData.email !== user.email) {
+                        try {
+                            // Update core user profile
+                            await updateDoc(doc(db, 'users', user.uid), { email: user.email });
+
+                            // Also sync to branch-specific collection for dashboards (Admin/HOD)
+                            if (userData.role === 'student' && userData.branch) {
+                                await updateDoc(doc(db, 'admin', 'students', userData.branch, user.uid), { email: user.email });
+                            }
+                        } catch (error) {
+                            console.error("Error syncing email to dashboards:", error);
+                        }
+
+                        userData.email = user.email;
+                    }
+
+                    setCurrentUser(userData);
                 } else {
-                    setCurrentUser(null);
+                    // Handle "zombie" account: Auth exists, Firestore doc missing
+                    // Try to auto-create if it looks like a student
+                    if (user.email && user.email.toLowerCase().endsWith('@aliet.edu')) {
+                        const regNo = user.email.split('@')[0].toUpperCase();
+                        const studentName = (studentData as any)[regNo];
+
+                        // Import studentData locally if needed, or we just trust the email format for now
+                        // To be safe, let's keep it simple: create basic profile
+                        const userProfile: User = {
+                            uid: user.uid,
+                            email: user.email,
+                            name: studentName || regNo, // Fallback to RegNo if name not found
+                            role: 'student',
+                            registrationNumber: regNo,
+                            employeeId: '',
+                            mobileNumber: '',
+                            department: '',
+                            branch: '',
+                            section: '',
+                            year: 1, // Default
+                            createdAt: serverTimestamp() as any,
+                        };
+
+                        await setDoc(doc(db, 'users', user.uid), userProfile);
+                        setCurrentUser(userProfile);
+                    } else {
+                        setCurrentUser(null);
+                    }
                 }
             } else {
                 setCurrentUser(null);
@@ -79,13 +131,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: email,
             name: userData.name || '',
             role: userData.role || 'student',
-            registrationNumber: userData.registrationNumber,
-            employeeId: userData.employeeId,
-            mobileNumber: userData.mobileNumber,
-            department: userData.department,
-            branch: userData.branch,
-            section: userData.section,
-            year: userData.year,
+            registrationNumber: userData.registrationNumber || '',
+            employeeId: userData.employeeId || '',
+            mobileNumber: userData.mobileNumber || '',
+            department: userData.department || '',
+            branch: userData.branch || '',
+            section: userData.section || '',
+            year: userData.year || 0,
             createdAt: serverTimestamp() as any,
         };
 
@@ -102,7 +154,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const isNewUser = !userDoc.exists();
 
         if (!isNewUser) {
-            setCurrentUser(userDoc.data() as User);
+            let userData = userDoc.data() as User;
+
+            setCurrentUser(userData);
         }
 
         return { isNewUser };
@@ -126,9 +180,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await setDoc(doc(db, 'users', firebaseUser.uid), updatedData, { merge: true });
 
         // Branch-specific storage for Faculty
-        const role = data.role || currentUser?.role;
+        // Use the enforced role logic
+        const targetRole = updatedData.role || currentUser?.role;
 
-        if (role === 'faculty') {
+        if (targetRole === 'faculty') {
             const branchName = data.department || currentUser?.department;
 
             if (branchName) {
@@ -156,7 +211,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Update local state
-        setCurrentUser((prev) => (prev ? { ...prev, ...data } : null));
+        setCurrentUser((prev) => {
+            if (!prev) return null;
+            return {
+                ...prev,
+                ...data, // This might overwrite role invalidly locally if we don't catch it, but next fetch fixes it.
+                role: updatedData.role || prev.role // Ensure we use the sanitized role
+            };
+        });
     };
 
     const value: AuthContextType = {

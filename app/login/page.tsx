@@ -9,12 +9,13 @@ import Image from 'next/image';
 import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import studentData from '@/data/students.json';
+import { detectBranchInfo } from '@/utils/branchDetector';
 
 type LoginMode = 'student' | 'institutional';
 
 export default function LoginPage() {
     const router = useRouter();
-    const { signIn, signInWithGoogle } = useAuth();
+    const { signIn, signInWithGoogle, signUp } = useAuth();
     const [mode, setMode] = useState<LoginMode>('student');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -65,15 +66,23 @@ export default function LoginPage() {
                 // Fallback: Check local students.json
                 const localName = (studentData as any)[regNo];
                 if (localName) {
-                    setStudentName(`${localName} (Not Registered)`);
-                    setError('Student found in college list but not registered. Please Register first.');
+                    setStudentName(localName);
+                    setError('');
                 } else {
                     setStudentName('');
                 }
 
             } catch (err) {
                 console.error('Error looking up student:', err);
-                setStudentName('');
+
+                // Fallback on error (e.g. permission denied): Check local students.json
+                const localName = (studentData as any)[regNo];
+                if (localName) {
+                    setStudentName(localName);
+                    setError('');
+                } else {
+                    setStudentName('');
+                }
             } finally {
                 setLookingUp(false);
             }
@@ -107,12 +116,56 @@ export default function LoginPage() {
 
             router.push('/dashboard/student');
         } catch (err: any) {
-            // Check if student exists in college list but account not created
+            // Check if student exists in registry
             const regNo = studentForm.registrationNumber.toUpperCase();
             const existsInRegistry = (studentData as any)[regNo];
 
-            if (existsInRegistry && (err.message?.includes('auth/user-not-found') || err.message?.includes('auth/invalid-credential'))) {
-                setError('Account not activated. Please click "Register" below to create your password.');
+            // If user not found (first time login) AND credentials might match default (password == regNo or they entered the correct regNo)
+            // AND they are a valid student in our list
+            if ((err.message?.includes('auth/user-not-found') || err.message?.includes('auth/invalid-credential')) &&
+                existsInRegistry) {
+
+                // If they entered the correct registration number as password (or any password, but for security maybe enforce default?)
+                // Actually, if account doesn't exist, we can't verify password.
+                // But user instruction is "simple go to student dashboard".
+                // So we implicitly trust if they have the RegNo and are in the list, and are trying to "Login".
+                // To be safe, let's just create the account with the password they provided.
+
+                try {
+                    const email = `${regNo}@aliet.edu`;
+                    const password = studentForm.password;
+
+                    // Branch info
+                    const { data: info, calculatedYear } = detectBranchInfo(regNo);
+
+                    await signUp(email, password, {
+                        role: 'student',
+                        name: existsInRegistry, // Name from JSON
+                        registrationNumber: regNo,
+                        branch: info?.branch || '',
+                        department: info?.branch || '',
+                        year: calculatedYear || 1,
+                    });
+
+                    // Log the auto-creation
+                    await addDoc(collection(db, 'admin/logs/logins'), {
+                        email,
+                        role: 'student',
+                        name: existsInRegistry,
+                        action: 'auto-register',
+                        timestamp: new Date()
+                    });
+
+                    router.push('/dashboard/student');
+                    return;
+                } catch (registerErr: any) {
+                    console.error("Auto-registration failed", registerErr);
+                    if (registerErr.code === 'auth/email-already-in-use') {
+                        setError("Account already exists. Please check your password.");
+                    } else {
+                        setError("Unable to set up your account automatically. Please try again or contact support.");
+                    }
+                }
             } else if (err.message?.includes('auth/invalid-credential') || err.message?.includes('auth/user-not-found')) {
                 setError('Invalid registration number or password.');
             } else {
@@ -272,7 +325,6 @@ export default function LoginPage() {
                                     </div>
                                 )}
                             </div>
-
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Password
@@ -291,6 +343,7 @@ export default function LoginPage() {
                                     />
                                 </div>
                             </div>
+
 
                             <button
                                 type="submit"
