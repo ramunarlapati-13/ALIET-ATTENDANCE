@@ -35,29 +35,31 @@ export default function AttendancePage() {
 
     // Load recent submissions on mount
     useEffect(() => {
-        loadRecentSubmissions();
+        if (currentUser) {
+            loadRecentSubmissions();
+        }
     }, [currentUser]);
 
     const loadRecentSubmissions = async () => {
         if (!currentUser) return;
 
         try {
-            // Get submissions from last 24 hours
-            const yesterday = new Date();
-            yesterday.setHours(yesterday.getHours() - 24);
-
+            // Query all recent attendance records and filter by facultyId client-side
+            // This avoids needing a composite index
             const q = query(
                 collection(db, 'attendance'),
-                where('facultyId', '==', currentUser.uid),
                 orderBy('timestamp', 'desc'),
-                limit(10)
+                limit(50) // Get more to filter client-side
             );
 
             const snapshot = await getDocs(q);
-            const submissions = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            const submissions = snapshot.docs
+                .map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }))
+                .filter((sub: any) => sub.facultyId === currentUser.uid)
+                .slice(0, 10); // Take only first 10 after filtering
 
             setRecentSubmissions(submissions);
         } catch (error) {
@@ -235,7 +237,12 @@ export default function AttendancePage() {
             if (isEditMode) {
                 cancelEdit();
             }
-            loadRecentSubmissions();
+
+            // Wait a bit for Firestore to update, then reload and show recent submissions
+            setTimeout(async () => {
+                await loadRecentSubmissions();
+                setShowRecentSubmissions(true);
+            }, 500);
 
         } catch (error) {
             console.error('Error submitting attendance:', error);
