@@ -28,11 +28,20 @@ import {
 import { useAuth } from '@/context/AuthContext';
 
 export default function AnalyticsPage() {
+    const { currentUser } = useAuth();
+
     // Filters
-    const [selectedBranch, setSelectedBranch] = useState('EEE');
+    const [selectedBranch, setSelectedBranch] = useState(currentUser?.department || 'EEE');
     const [selectedYear, setSelectedYear] = useState(2);
     const [selectedSection, setSelectedSection] = useState('A');
     const [isLoading, setIsLoading] = useState(false);
+
+    // Update default branch when currentUser loads
+    useEffect(() => {
+        if (currentUser?.department) {
+            setSelectedBranch(currentUser.department);
+        }
+    }, [currentUser]);
 
     // Data State
     const [attendanceDocs, setAttendanceDocs] = useState<any[]>([]);
@@ -325,8 +334,8 @@ export default function AnalyticsPage() {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-center">
                                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${student.percent >= 75 ? 'bg-green-100 text-green-800' :
-                                                student.percent >= 65 ? 'bg-yellow-100 text-yellow-800' :
-                                                    'bg-red-100 text-red-800'
+                                            student.percent >= 65 ? 'bg-yellow-100 text-yellow-800' :
+                                                'bg-red-100 text-red-800'
                                             }`}>
                                             {student.percent}%
                                         </span>

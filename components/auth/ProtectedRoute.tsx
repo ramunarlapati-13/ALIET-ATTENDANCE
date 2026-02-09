@@ -20,7 +20,8 @@ export default function ProtectedRoute({
                 router.push('/login');
             } else if (allowedRoles && !allowedRoles.includes(currentUser.role)) {
                 // Redirect to appropriate dashboard based on role
-                router.push(`/dashboard/${currentUser.role}`);
+                const redirectRole = currentUser.role === 'hod' ? 'faculty' : currentUser.role;
+                router.push(`/dashboard/${redirectRole}`);
             }
         }
     }, [currentUser, loading, allowedRoles, router]);

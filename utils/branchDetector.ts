@@ -131,6 +131,45 @@ export const detectBranchInfo = (regNo: string): BranchDetectionResult => {
     return result;
 };
 
+/**
+ * Detects faculty info from Faculty ID/Employee ID.
+ * Supports patterns: FAC-CSE-001 or ALIET-26-05
+ */
+export const detectFacultyInfo = (facultyId: string): BranchInfo | null => {
+    if (!facultyId) return null;
+    const cleanId = facultyId.trim().toUpperCase();
+
+    // Pattern 1: FAC-CSE-001
+    if (cleanId.startsWith('FAC-')) {
+        const parts = cleanId.split('-');
+        if (parts.length >= 2) {
+            const deptCode = parts[1];
+            // Validate if it's a known branch
+            const matchedBranch = Object.values(BRANCH_CODES).find(
+                b => b.branch === deptCode
+            );
+            if (matchedBranch) return matchedBranch;
+
+            // If not in BRANCH_CODES but looks like a code, return basic info
+            if (deptCode.length >= 2 && deptCode.length <= 5) {
+                return { branch: deptCode, department: deptCode };
+            }
+        }
+    }
+
+    // Pattern 2: ALIET-26-05
+    if (cleanId.startsWith('ALIET-')) {
+        const parts = cleanId.split('-');
+        if (parts.length >= 3) {
+            const branchCode = parts[2];
+            const info = BRANCH_CODES[branchCode];
+            if (info) return info;
+        }
+    }
+
+    return null;
+};
+
 // Wrapper
 export const getBranchFromRegistrationNumber = (regNo: string): BranchInfo | null => {
     return detectBranchInfo(regNo).data;

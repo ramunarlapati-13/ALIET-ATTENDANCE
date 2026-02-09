@@ -10,6 +10,7 @@ import { ArrowLeft, UserPlus, LayoutDashboard, ShieldAlert, Upload, FileText, Ch
 import { useAuth, ADMIN_EMAILS } from '@/context/AuthContext';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
+import { detectBranchInfo, detectFacultyInfo } from '@/utils/branchDetector';
 
 export default function RegisterFaculty() {
     const router = useRouter();
@@ -413,7 +414,16 @@ export default function RegisterFaculty() {
                                         className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
                                         placeholder="e.g. 20HP1A0501"
                                         value={formData.registrationNumber}
-                                        onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
+                                        onChange={(e) => {
+                                            const val = e.target.value.toUpperCase();
+                                            const info = detectBranchInfo(val);
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                registrationNumber: val,
+                                                department: info.data?.branch || prev.department,
+                                                year: info.calculatedYear?.toString() || prev.year,
+                                            }));
+                                        }}
                                     />
                                     <p className="text-xs text-gray-500 mt-1">
                                         Generated Email: {((formData.registrationNumber || "example") + "@aliet.ac.in").toLowerCase()}
@@ -456,7 +466,15 @@ export default function RegisterFaculty() {
                                     className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
                                     placeholder="e.g. FAC-CSE-001"
                                     value={formData.facultyId}
-                                    onChange={(e) => setFormData({ ...formData, facultyId: e.target.value })}
+                                    onChange={(e) => {
+                                        const val = e.target.value.toUpperCase();
+                                        const info = detectFacultyInfo(val);
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            facultyId: val,
+                                            department: info?.branch || prev.department
+                                        }));
+                                    }}
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
                                     Generated Email: {((formData.facultyId || "example") + "@aliet.ac.in").toLowerCase()}

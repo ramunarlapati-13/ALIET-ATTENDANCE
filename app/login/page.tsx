@@ -9,7 +9,7 @@ import Image from 'next/image';
 import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import studentData from '@/data/students.json';
-import { detectBranchInfo } from '@/utils/branchDetector';
+import { detectBranchInfo, detectFacultyInfo } from '@/utils/branchDetector';
 
 type LoginMode = 'student' | 'institutional';
 
@@ -23,7 +23,10 @@ export default function LoginPage() {
     const [error, setError] = useState('');
     const [showRoleModal, setShowRoleModal] = useState(false);
     const [studentName, setStudentName] = useState('');
+    const [facultyName, setFacultyName] = useState('');
+    const [facultyDept, setFacultyDept] = useState('');
     const [lookingUp, setLookingUp] = useState(false);
+    const [lookingUpFaculty, setLookingUpFaculty] = useState(false);
 
     // Student login form
     const [studentForm, setStudentForm] = useState({
@@ -93,6 +96,56 @@ export default function LoginPage() {
         const timeoutId = setTimeout(lookupStudent, 500);
         return () => clearTimeout(timeoutId);
     }, [studentForm.registrationNumber]);
+
+    // Lookup faculty name when employee ID changes
+    useEffect(() => {
+        const lookupFaculty = async () => {
+            const rawId = institutionalForm.email.trim();
+            // Only lookup if it's an ID (not a full email) or a short ID
+            if (!rawId || rawId.includes('@') || rawId.length < 4) {
+                setFacultyName('');
+                setFacultyDept('');
+                return;
+            }
+
+            const empId = rawId.toUpperCase();
+            const structuralInfo = detectFacultyInfo(empId);
+            setLookingUpFaculty(true);
+            try {
+                const usersRef = collection(db, 'users');
+                const q = query(usersRef,
+                    where('employeeId', '==', empId),
+                    where('role', 'in', ['faculty', 'hod'])
+                );
+                const snapshot = await getDocs(q);
+
+                if (!snapshot.empty) {
+                    const userData = snapshot.docs[0].data();
+                    setFacultyName(userData.name || '');
+                    setFacultyDept(userData.department || '');
+                } else if (structuralInfo) {
+                    setFacultyName('');
+                    setFacultyDept(structuralInfo.branch);
+                } else {
+                    setFacultyName('');
+                    setFacultyDept('');
+                }
+            } catch (err) {
+                console.error('Error looking up faculty:', err);
+                if (structuralInfo) {
+                    setFacultyDept(structuralInfo.branch);
+                } else {
+                    setFacultyName('');
+                    setFacultyDept('');
+                }
+            } finally {
+                setLookingUpFaculty(false);
+            }
+        };
+
+        const timeoutId = setTimeout(lookupFaculty, 500);
+        return () => clearTimeout(timeoutId);
+    }, [institutionalForm.email]);
 
     const handleStudentLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -399,10 +452,29 @@ export default function LoginPage() {
                                         onChange={(e) =>
                                             setInstitutionalForm({ ...institutionalForm, email: e.target.value })
                                         }
-                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all ${facultyName ? 'border-green-300 bg-green-50' : 'border-gray-300'}`}
                                         placeholder="Enter your Faculty ID"
                                     />
+                                    {lookingUpFaculty && (
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
+                                        </div>
+                                    )}
                                 </div>
+                                {(facultyName || facultyDept) && (
+                                    <div className="mt-2 p-2 bg-green-50 rounded border border-green-100 flex flex-col animate-in slide-in-from-top-1 duration-200">
+                                        {facultyName && (
+                                            <p className="text-sm font-semibold text-green-700">
+                                                Welcome, {facultyName}
+                                            </p>
+                                        )}
+                                        {facultyDept && (
+                                            <p className="text-xs text-green-600">
+                                                Department: {facultyDept}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div>

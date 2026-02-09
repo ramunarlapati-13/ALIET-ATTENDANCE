@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { UserRole } from '@/types';
 import { X } from 'lucide-react';
-import { detectBranchInfo } from '@/utils/branchDetector';
+import { detectBranchInfo, detectFacultyInfo } from '@/utils/branchDetector';
 import studentData from '@/data/students.json';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
@@ -398,11 +398,61 @@ export default function RoleSelectionModal({
                                             type="text"
                                             required
                                             value={formData.employeeId}
-                                            onChange={(e) =>
-                                                setFormData({ ...formData, employeeId: e.target.value })
-                                            }
+                                            onChange={async (e) => {
+                                                const newId = e.target.value.toUpperCase().trim();
+                                                const facultyInfo = detectFacultyInfo(newId);
+
+                                                // Firestore Lookup for admin-registered faculty
+                                                if (newId.length >= 4) {
+                                                    try {
+                                                        const usersRef = collection(db, 'users');
+                                                        const q = query(usersRef, where('employeeId', '==', newId), where('role', 'in', ['faculty', 'hod']));
+                                                        const snapshot = await getDocs(q);
+                                                        if (!snapshot.empty) {
+                                                            const dbData = snapshot.docs[0].data();
+                                                            // Auto-fill fields if found in DB
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                employeeId: newId,
+                                                                name: dbData.name || prev.name,
+                                                                department: dbData.department || facultyInfo?.branch || prev.department,
+                                                            }));
+                                                        } else {
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                employeeId: newId,
+                                                                department: facultyInfo?.branch || prev.department
+                                                            }));
+                                                        }
+                                                    } catch (err) {
+                                                        console.error("Faculty Lookup failed:", err);
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            employeeId: newId,
+                                                            department: facultyInfo?.branch || prev.department
+                                                        }));
+                                                    }
+                                                } else {
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        employeeId: newId,
+                                                        department: facultyInfo?.branch || prev.department
+                                                    }));
+                                                }
+                                            }}
                                             className="input-field"
+                                            placeholder="Enter Employee ID"
                                         />
+                                        {formData.name && formData.employeeId.length >= 4 && (
+                                            <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-100 dark:border-blue-800 animate-in fade-in slide-in-from-top-1 duration-200">
+                                                <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                                                    Faculty Found: {formData.name}
+                                                </p>
+                                                <p className="text-xs text-blue-600 dark:text-blue-400">
+                                                    ID: {formData.employeeId} | Dept: {formData.department}
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div>

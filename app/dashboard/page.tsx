@@ -10,7 +10,12 @@ export default function DashboardRedirect() {
 
     useEffect(() => {
         if (!loading && currentUser) {
-            router.push(`/dashboard/${currentUser.role}`);
+            const role = currentUser.role;
+            if (role === 'hod') {
+                router.push('/dashboard/faculty');
+            } else {
+                router.push(`/dashboard/${role}`);
+            }
         } else if (!loading && !currentUser) {
             router.push('/login');
         }

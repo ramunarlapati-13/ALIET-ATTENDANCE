@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import { Users, GraduationCap, Building2, LogOut, Search, Filter, Moon, Sun, UserPlus } from 'lucide-react';
+import { Users, GraduationCap, Building2, LogOut, Search, Filter, Moon, Sun, UserPlus, Edit, X, Save } from 'lucide-react';
 import SpotlightCursor from '@/components/ui/SpotlightCursor';
 
 interface Student {
@@ -47,6 +47,13 @@ function AdminDashboard() {
     const [filterBranch, setFilterBranch] = useState('all');
     const [filterYear, setFilterYear] = useState('all');
     const { darkMode, toggleTheme } = useTheme();
+
+    // Edit Modal States
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState<Student | Faculty | null>(null);
+    const [editFormData, setEditFormData] = useState<any>({});
+    const [editLoading, setEditLoading] = useState(false);
+
 
     useEffect(() => {
         const unsubscribes: Unsubscribe[] = [];
@@ -126,6 +133,63 @@ function AdminDashboard() {
     const handleSignOut = async () => {
         await signOut();
         router.push('/login');
+    };
+
+    const handleEditUser = (user: Student | Faculty) => {
+        setEditingUser(user);
+        setEditFormData({ ...user });
+        setEditModalOpen(true);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingUser) return;
+
+        setEditLoading(true);
+        try {
+            const { doc: docImport, updateDoc, setDoc, serverTimestamp } = await import('firebase/firestore');
+
+            // Update main users collection
+            const userRef = docImport(db, 'users', editingUser.uid);
+            await updateDoc(userRef, {
+                ...editFormData,
+                updatedAt: serverTimestamp()
+            });
+
+            // Update hierarchical structure based on role
+            const isStudent = 'registrationNumber' in editingUser;
+
+            if (isStudent) {
+                // Update student in admin hierarchy
+                const student = editFormData as Student;
+                if (student.branch && student.year && student.section) {
+                    const hierarchyRef = docImport(db, 'admin', 'students', student.branch, String(student.year), student.section, editingUser.uid);
+                    await setDoc(hierarchyRef, {
+                        ...editFormData,
+                        updatedAt: serverTimestamp()
+                    }, { merge: true });
+                }
+            } else {
+                // Update faculty in admin hierarchy
+                const faculty = editFormData as Faculty;
+                if (faculty.department) {
+                    const branchRef = docImport(db, 'admin', 'faculty', 'branch', faculty.department);
+                    const memberRef = docImport(branchRef, 'faculty_members', editingUser.uid);
+                    await setDoc(memberRef, {
+                        ...editFormData,
+                        updatedAt: serverTimestamp()
+                    }, { merge: true });
+                }
+            }
+
+            setEditModalOpen(false);
+            setEditingUser(null);
+            setEditFormData({});
+        } catch (error) {
+            console.error('Error updating user:', error);
+            alert('Failed to update user. Please try again.');
+        } finally {
+            setEditLoading(false);
+        }
     };
 
 
@@ -388,12 +452,15 @@ function AdminDashboard() {
                                                     <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider">
                                                         Mobile
                                                     </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                                                        Actions
+                                                    </th>
                                                 </tr>
                                             </thead>
                                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                                 {filteredStudents.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                                                        <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                                                             No students found
                                                         </td>
                                                     </tr>
@@ -422,6 +489,16 @@ function AdminDashboard() {
                                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                                 {student.mobileNumber || '-'}
                                                             </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                                <button
+                                                                    onClick={() => handleEditUser(student)}
+                                                                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 transition-colors"
+                                                                    title="Edit Student"
+                                                                >
+                                                                    <Edit className="w-4 h-4" />
+                                                                    <span className="hidden sm:inline">Edit</span>
+                                                                </button>
+                                                            </td>
                                                         </tr>
                                                     ))
                                                 )}
@@ -444,12 +521,15 @@ function AdminDashboard() {
                                                     <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider">
                                                         Mobile
                                                     </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                                                        Actions
+                                                    </th>
                                                 </tr>
                                             </thead>
                                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                                 {filteredFaculty.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                                                             No faculty found
                                                         </td>
                                                     </tr>
@@ -470,6 +550,16 @@ function AdminDashboard() {
                                                             </td>
                                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                                 {member.mobileNumber || '-'}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                                <button
+                                                                    onClick={() => handleEditUser(member)}
+                                                                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 transition-colors"
+                                                                    title="Edit Faculty"
+                                                                >
+                                                                    <Edit className="w-4 h-4" />
+                                                                    <span className="hidden sm:inline">Edit</span>
+                                                                </button>
                                                             </td>
                                                         </tr>
                                                     ))
@@ -534,6 +624,196 @@ function AdminDashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* Edit User Modal */}
+            {editModalOpen && editingUser && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative animate-in zoom-in-95 duration-200">
+                        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between z-10">
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                                Edit {'registrationNumber' in editingUser ? 'Student' : 'Faculty'}
+                            </h2>
+                            <button
+                                onClick={() => setEditModalOpen(false)}
+                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                disabled={editLoading}
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="p-6">
+                            <form onSubmit={(e) => { e.preventDefault(); handleSaveEdit(); }} className="space-y-4">
+                                {/* Common Fields */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Full Name *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={editFormData.name || ''}
+                                        onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Email
+                                    </label>
+                                    <input
+                                        type="email"
+                                        value={editFormData.email || ''}
+                                        onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Mobile Number
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        value={editFormData.mobileNumber || ''}
+                                        onChange={(e) => setEditFormData({ ...editFormData, mobileNumber: e.target.value })}
+                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                        placeholder="10-digit mobile number"
+                                    />
+                                </div>
+
+                                {/* Student-specific Fields */}
+                                {'registrationNumber' in editingUser && (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Registration Number
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={editFormData.registrationNumber || ''}
+                                                onChange={(e) => setEditFormData({ ...editFormData, registrationNumber: e.target.value.toUpperCase() })}
+                                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                    Branch
+                                                </label>
+                                                <select
+                                                    value={editFormData.branch || ''}
+                                                    onChange={(e) => setEditFormData({ ...editFormData, branch: e.target.value })}
+                                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                                >
+                                                    <option value="">Select Branch</option>
+                                                    {BRANCHES.map(branch => (
+                                                        <option key={branch} value={branch}>{branch}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                    Year
+                                                </label>
+                                                <select
+                                                    value={editFormData.year || ''}
+                                                    onChange={(e) => setEditFormData({ ...editFormData, year: parseInt(e.target.value) })}
+                                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                                >
+                                                    <option value="">Select Year</option>
+                                                    <option value={1}>1st Year</option>
+                                                    <option value={2}>2nd Year</option>
+                                                    <option value={3}>3rd Year</option>
+                                                    <option value={4}>4th Year</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Section
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={editFormData.section || ''}
+                                                onChange={(e) => setEditFormData({ ...editFormData, section: e.target.value.toUpperCase() })}
+                                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                                placeholder="e.g., A, B, C"
+                                            />
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* Faculty-specific Fields */}
+                                {'employeeId' in editingUser && (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Employee ID
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={editFormData.employeeId || ''}
+                                                onChange={(e) => setEditFormData({ ...editFormData, employeeId: e.target.value })}
+                                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Department
+                                            </label>
+                                            <select
+                                                value={editFormData.department || ''}
+                                                onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
+                                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                            >
+                                                <option value="">Select Department</option>
+                                                {BRANCHES.map(branch => (
+                                                    <option key={branch} value={branch}>{branch}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* Action Buttons */}
+                                <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditModalOpen(false)}
+                                        className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 font-medium"
+                                        disabled={editLoading}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        disabled={editLoading}
+                                    >
+                                        {editLoading ? (
+                                            <>
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                                Saving...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Save className="w-4 h-4" />
+                                                Save Changes
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
         </ProtectedRoute>
     );
 }

@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import studentData from '@/data/students.json';
 import { detectBranchInfo } from '@/utils/branchDetector';
-import { UserCheck, UserX, Save, Filter, AlertTriangle, X, Edit2, Clock, RefreshCw } from 'lucide-react';
+import { UserCheck, UserX, Save, Filter, AlertTriangle, X, Edit2, Clock, RefreshCw, Users, CheckCircle } from 'lucide-react';
 
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase/config';
@@ -13,9 +13,16 @@ export default function AttendancePage() {
     const { currentUser } = useAuth();
 
     // Selection Filters
-    const [selectedBranch, setSelectedBranch] = useState('EEE');
+    const [selectedBranch, setSelectedBranch] = useState(currentUser?.department || 'EEE');
     const [selectedYear, setSelectedYear] = useState(2);
     const [selectedSection, setSelectedSection] = useState('A');
+
+    // Update default branch when currentUser loads
+    useEffect(() => {
+        if (currentUser?.department) {
+            setSelectedBranch(currentUser.department);
+        }
+    }, [currentUser]);
     const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -25,6 +32,7 @@ export default function AttendancePage() {
     const [editingTimestamp, setEditingTimestamp] = useState<any>(null);
     const [recentSubmissions, setRecentSubmissions] = useState<any[]>([]);
     const [showRecentSubmissions, setShowRecentSubmissions] = useState(false);
+    const [viewingAbsentees, setViewingAbsentees] = useState<any>(null);
 
     // Modal State
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -39,6 +47,40 @@ export default function AttendancePage() {
             loadRecentSubmissions();
         }
     }, [currentUser]);
+
+    // Check for existing attendance when date or filters change
+    useEffect(() => {
+        const checkExisting = async () => {
+            const docId = `${attendanceDate}_${selectedBranch}_${selectedYear}_${selectedSection}`;
+            try {
+                const docRef = doc(db, 'attendance', docId);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    setAttendance(data.records || {});
+                    setIsEditMode(true);
+                    setEditingDocId(docId);
+                    setEditingTimestamp(data.timestamp);
+                } else {
+                    // No existing record for this combination
+                    if (isEditMode) {
+                        setAttendance({});
+                        setIsEditMode(false);
+                        setEditingDocId(null);
+                        setEditingTimestamp(null);
+                    } else {
+                        // Just clear fresh state
+                        setAttendance({});
+                    }
+                }
+            } catch (error) {
+                console.error("Error checking existing attendance:", error);
+            }
+        };
+
+        checkExisting();
+    }, [attendanceDate, selectedBranch, selectedYear, selectedSection]);
 
     const loadRecentSubmissions = async () => {
         if (!currentUser) {
@@ -67,14 +109,17 @@ export default function AttendancePage() {
 
             console.log('loadRecentSubmissions: Sample doc:', allDocs[0]);
 
-            // Filter by current faculty and sort by timestamp
+            // Filter by current faculty (or department for HODs) and sort by timestamp
             const submissions = allDocs
                 .filter((sub: any) => {
-                    const match = sub.facultyId === currentUser.uid;
-                    if (match) {
+                    const isOwnSubmission = sub.facultyId === currentUser.uid;
+                    const isHODOfDepartment = currentUser.role === 'hod' && sub.branch === currentUser.department;
+
+                    if (isOwnSubmission || isHODOfDepartment) {
                         console.log('loadRecentSubmissions: Found matching submission:', sub.id);
+                        return true;
                     }
-                    return match;
+                    return false;
                 })
                 .sort((a: any, b: any) => {
                     // Sort by timestamp descending (newest first)
@@ -82,7 +127,7 @@ export default function AttendancePage() {
                     const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : 0;
                     return timeB - timeA;
                 })
-                .slice(0, 10); // Take only first 10
+                .slice(0, 20); // Show more for HODs if needed (increased to 20)
 
             console.log('loadRecentSubmissions: Filtered to', submissions.length, 'submissions for this faculty');
             setRecentSubmissions(submissions);
@@ -185,6 +230,13 @@ export default function AttendancePage() {
     };
 
     const handleSubmitClick = () => {
+        // Prevent future attendance
+        const today = new Date().toISOString().split('T')[0];
+        if (attendanceDate > today) {
+            alert('Cannot mark attendance for future dates.');
+            return;
+        }
+
         // Identify unmarked students
         const unmarked = filteredStudents.filter(s => !attendance[s.regNo]);
 
@@ -372,6 +424,7 @@ export default function AttendancePage() {
                         <input
                             type="date"
                             value={attendanceDate}
+                            max={new Date().toISOString().split('T')[0]}
                             onChange={(e) => setAttendanceDate(e.target.value)}
                             className="input-field py-2 px-3 w-full sm:w-auto"
                         />
@@ -383,7 +436,6 @@ export default function AttendancePage() {
                         value={selectedBranch}
                         onChange={(e) => setSelectedBranch(e.target.value)}
                         className="input-field"
-                        disabled={isEditMode}
                     >
                         <option value="EEE">EEE</option>
                         <option value="ECE">ECE</option>
@@ -397,7 +449,6 @@ export default function AttendancePage() {
                         value={selectedYear}
                         onChange={(e) => setSelectedYear(parseInt(e.target.value))}
                         className="input-field"
-                        disabled={isEditMode}
                     >
                         <option value={1}>1st Year</option>
                         <option value={2}>2nd Year</option>
@@ -409,7 +460,6 @@ export default function AttendancePage() {
                         value={selectedSection}
                         onChange={(e) => setSelectedSection(e.target.value)}
                         className="input-field"
-                        disabled={isEditMode}
                     >
                         <option value="A">Section A</option>
                         <option value="B">Section B</option>
@@ -460,6 +510,7 @@ export default function AttendancePage() {
                             </div>
                         ) : (
                             recentSubmissions.map((submission) => {
+                                const isOwnSubmission = submission.facultyId === currentUser?.uid;
                                 const editable = canEdit(submission.timestamp);
                                 const submittedTime = submission.timestamp?.toDate ? submission.timestamp.toDate() : new Date(submission.timestamp);
                                 const timeAgo = Math.floor((new Date().getTime() - submittedTime.getTime()) / (1000 * 60));
@@ -475,6 +526,11 @@ export default function AttendancePage() {
                                                     <span className="text-sm text-gray-500">
                                                         {submission.date}
                                                     </span>
+                                                    {submission.facultyName && currentUser?.role === 'hod' && !isOwnSubmission && (
+                                                        <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">
+                                                            By: {submission.facultyName}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
                                                     <span>Present: {submission.stats?.present || 0}</span>
@@ -485,24 +541,83 @@ export default function AttendancePage() {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div>
-                                                {editable ? (
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex bg-gray-50 dark:bg-gray-700 p-1 rounded-lg border border-gray-100 dark:border-gray-600">
+                                                    {isOwnSubmission && editable && (
+                                                        <button
+                                                            onClick={() => loadAttendanceForEdit(submission.id)}
+                                                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
+                                                        >
+                                                            <Edit2 className="w-4 h-4" />
+                                                            Edit
+                                                        </button>
+                                                    )}
                                                     <button
-                                                        onClick={() => loadAttendanceForEdit(submission.id)}
-                                                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
+                                                        onClick={() => setViewingAbsentees(submission)}
+                                                        className="flex items-center gap-2 px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors text-sm"
                                                     >
-                                                        <Edit2 className="w-4 h-4" />
-                                                        Edit
+                                                        <Users className="w-4 h-4" />
+                                                        Absentees
                                                     </button>
-                                                ) : (
-                                                    <span className="text-xs text-gray-400 italic">Edit window expired</span>
-                                                )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 );
                             })
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* Absentees Modal */}
+            {viewingAbsentees && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/50">
+                            <div>
+                                <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <Users className="w-5 h-5 text-red-500" />
+                                    Absentees List
+                                </h3>
+                                <p className="text-xs text-gray-500">
+                                    {viewingAbsentees.branch} {viewingAbsentees.year}Y {viewingAbsentees.section} | {viewingAbsentees.date}
+                                </p>
+                            </div>
+                            <button onClick={() => setViewingAbsentees(null)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors">
+                                <X className="w-5 h-5 text-gray-500" />
+                            </button>
+                        </div>
+                        <div className="max-h-[60vh] overflow-y-auto p-4">
+                            {Object.entries(viewingAbsentees.records || {})
+                                .filter(([_, status]) => status === 'Absent')
+                                .length > 0 ? (
+                                <div className="space-y-2">
+                                    {Object.entries(viewingAbsentees.records || {})
+                                        .filter(([_, status]) => status === 'Absent')
+                                        .map(([regNo], idx) => (
+                                            <div key={regNo} className="flex items-center justify-between p-3 bg-red-50/30 dark:bg-red-900/10 rounded-xl border border-red-100/50 dark:border-red-900/20">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{(studentData as Record<string, string>)[regNo] || 'Unknown'}</span>
+                                                    <span className="text-[10px] text-gray-500 font-mono uppercase italic">{regNo}</span>
+                                                </div>
+                                                <div className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-[10px] font-bold rounded">ABSENT</div>
+                                            </div>
+                                        ))}
+                                </div>
+                            ) : (
+                                <div className="py-8 text-center bg-green-50 dark:bg-green-900/10 rounded-xl">
+                                    <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                                    <p className="font-bold text-green-700 dark:text-green-400">Perfect!</p>
+                                    <p className="text-xs text-green-600 dark:text-green-500">No absentees.</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+                            <button onClick={() => setViewingAbsentees(null)} className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-lg font-bold hover:opacity-90 transition-opacity">
+                                Close
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
@@ -516,13 +631,15 @@ export default function AttendancePage() {
                     <div className="flex gap-2 w-full sm:w-auto">
                         <button
                             onClick={() => markAll('Present')}
-                            className="flex-1 sm:flex-none px-3 py-2 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-center"
+                            disabled={attendanceDate > new Date().toISOString().split('T')[0]}
+                            className="flex-1 sm:flex-none px-3 py-2 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-center disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Mark All Present
                         </button>
                         <button
                             onClick={() => markAll('Absent')}
-                            className="flex-1 sm:flex-none px-3 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-center"
+                            disabled={attendanceDate > new Date().toISOString().split('T')[0]}
+                            className="flex-1 sm:flex-none px-3 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-center disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Mark All Absent
                         </button>
@@ -573,7 +690,8 @@ export default function AttendancePage() {
                                                 <div className="flex justify-center gap-2">
                                                     <button
                                                         onClick={() => handleMark(student.regNo, 'Present')}
-                                                        className={`p-2 rounded-lg transition-all ${status === 'Present'
+                                                        disabled={attendanceDate > new Date().toISOString().split('T')[0]}
+                                                        className={`p-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${status === 'Present'
                                                             ? 'bg-green-500 text-white shadow-md scale-105'
                                                             : 'bg-gray-100 text-gray-400 hover:bg-green-100 hover:text-green-600'
                                                             }`}
@@ -582,7 +700,8 @@ export default function AttendancePage() {
                                                     </button>
                                                     <button
                                                         onClick={() => handleMark(student.regNo, 'Absent')}
-                                                        className={`p-2 rounded-lg transition-all ${status === 'Absent'
+                                                        disabled={attendanceDate > new Date().toISOString().split('T')[0]}
+                                                        className={`p-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${status === 'Absent'
                                                             ? 'bg-red-500 text-white shadow-md scale-105'
                                                             : 'bg-gray-100 text-gray-400 hover:bg-red-100 hover:text-red-600'
                                                             }`}
@@ -603,11 +722,11 @@ export default function AttendancePage() {
                     <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-end">
                         <button
                             onClick={handleSubmitClick}
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || attendanceDate > new Date().toISOString().split('T')[0]}
                             className="flex items-center gap-2 px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all font-medium transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Save className="w-5 h-5" />
-                            {isSubmitting ? 'Saving...' : isEditMode ? 'Update Attendance' : 'Submit Attendance'}
+                            {attendanceDate > new Date().toISOString().split('T')[0] ? 'Future Date Restricted' : isSubmitting ? 'Saving...' : isEditMode ? 'Update Attendance' : 'Submit Attendance'}
                         </button>
                     </div>
                 )}
