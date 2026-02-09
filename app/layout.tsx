@@ -6,6 +6,7 @@ import InstallPrompt from "@/components/ui/InstallPrompt";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import { ThemeProvider } from "@/context/ThemeContext";
 import ThemeToggleFloating from "@/components/ui/ThemeToggleFloating";
+import NavigationDock from "@/components/ui/NavigationDock";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -45,6 +46,7 @@ export default function RootLayout({
                         {children}
                         <InstallPrompt />
                         <ThemeToggleFloating />
+                        <NavigationDock />
                     </ThemeProvider>
                 </AuthProvider>
             </body>

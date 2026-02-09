@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import { Users, GraduationCap, Building2, LogOut, Search, Filter, Moon, Sun, UserPlus, Edit, X, Save } from 'lucide-react';
+import { Users, GraduationCap, Building2, LogOut, Search, Filter, Moon, Sun, UserPlus, Edit, X, Save, Trash2, AlertTriangle } from 'lucide-react';
 import SpotlightCursor from '@/components/ui/SpotlightCursor';
 
 interface Student {
@@ -53,6 +53,11 @@ function AdminDashboard() {
     const [editingUser, setEditingUser] = useState<Student | Faculty | null>(null);
     const [editFormData, setEditFormData] = useState<any>({});
     const [editLoading, setEditLoading] = useState(false);
+
+    // Delete Modal States
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [userToDelete, setUserToDelete] = useState<Student | Faculty | null>(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
 
     useEffect(() => {
@@ -189,6 +194,50 @@ function AdminDashboard() {
             alert('Failed to update user. Please try again.');
         } finally {
             setEditLoading(false);
+        }
+    };
+
+    const handleDeleteClick = (user: Student | Faculty) => {
+        setUserToDelete(user);
+        setDeleteModalOpen(true);
+    };
+
+    const confirmDeleteUser = async () => {
+        if (!userToDelete) return;
+
+        setDeleteLoading(true);
+        try {
+            const { doc: docImport, deleteDoc } = await import('firebase/firestore');
+
+            // Delete from main users collection
+            const userRef = docImport(db, 'users', userToDelete.uid);
+            await deleteDoc(userRef);
+
+            // Delete from hierarchy based on role
+            const isStudent = 'registrationNumber' in userToDelete;
+
+            if (isStudent) {
+                const student = userToDelete as Student;
+                if (student.branch && student.year && student.section) {
+                    const hierarchyRef = docImport(db, 'admin', 'students', student.branch, String(student.year), student.section, userToDelete.uid);
+                    await deleteDoc(hierarchyRef);
+                }
+            } else {
+                const faculty = userToDelete as Faculty;
+                if (faculty.department) {
+                    const branchRef = docImport(db, 'admin', 'faculty', 'branch', faculty.department);
+                    const memberRef = docImport(branchRef, 'faculty_members', userToDelete.uid);
+                    await deleteDoc(memberRef);
+                }
+            }
+
+            setDeleteModalOpen(false);
+            setUserToDelete(null);
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            alert('Failed to delete user. Please try again.');
+        } finally {
+            setDeleteLoading(false);
         }
     };
 
@@ -490,14 +539,24 @@ function AdminDashboard() {
                                                                 {student.mobileNumber || '-'}
                                                             </td>
                                                             <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                                <button
-                                                                    onClick={() => handleEditUser(student)}
-                                                                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 transition-colors"
-                                                                    title="Edit Student"
-                                                                >
-                                                                    <Edit className="w-4 h-4" />
-                                                                    <span className="hidden sm:inline">Edit</span>
-                                                                </button>
+                                                                <div className="flex items-center gap-3">
+                                                                    <button
+                                                                        onClick={() => handleEditUser(student)}
+                                                                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 transition-colors"
+                                                                        title="Edit Student"
+                                                                    >
+                                                                        <Edit className="w-4 h-4" />
+                                                                        <span className="hidden sm:inline">Edit</span>
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleDeleteClick(student)}
+                                                                        className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-1 transition-colors"
+                                                                        title="Remove Student"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                        <span className="hidden sm:inline">Remove</span>
+                                                                    </button>
+                                                                </div>
                                                             </td>
                                                         </tr>
                                                     ))
@@ -810,6 +869,56 @@ function AdminDashboard() {
                                     </button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Delete Confirmation Modal */}
+            {deleteModalOpen && userToDelete && (
+                <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-6">
+                            <div className="flex items-center gap-4 mb-6">
+                                <div className="p-3 bg-red-100 rounded-full">
+                                    <AlertTriangle className="w-8 h-8 text-red-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">Confirm Removal</h3>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">This action cannot be undone.</p>
+                                </div>
+                            </div>
+
+                            <p className="text-gray-600 dark:text-gray-300 mb-6">
+                                Are you sure you want to remove <strong>{userToDelete.name}</strong> from the system?
+                                All associated data for this {'registrationNumber' in userToDelete ? 'student' : 'faculty'} will be permanently deleted.
+                            </p>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setDeleteModalOpen(false)}
+                                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 font-medium"
+                                    disabled={deleteLoading}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmDeleteUser}
+                                    className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={deleteLoading}
+                                >
+                                    {deleteLoading ? (
+                                        <>
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                            Removing...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Trash2 className="w-4 h-4" />
+                                            Remove User
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
