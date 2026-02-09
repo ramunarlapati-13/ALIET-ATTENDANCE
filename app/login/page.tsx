@@ -495,7 +495,7 @@ export default function LoginPage() {
                 onClick={() => setShowPrincipalMessage(true)}
                 className="hidden md:flex fixed bottom-20 right-4 bg-white/90 backdrop-blur-sm text-primary-700 px-4 py-3 rounded-full shadow-xl hover:bg-white hover:scale-105 transition-all items-center gap-2 font-medium z-40 border border-white/20"
             >
-                <Quote className="w-5 h-5" />
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-quote w-5 h-5"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 0v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" /><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 0v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" /></svg>
                 <span className="hidden sm:inline">Principal's Message</span>
             </button>
 
@@ -507,7 +507,7 @@ export default function LoginPage() {
                             onClick={() => setShowPrincipalMessage(false)}
                             className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-full p-2 transition-colors z-10"
                         >
-                            <X className="w-6 h-6" />
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x w-6 h-6"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
                         </button>
 
                         <div className="p-6 md:p-10">
@@ -519,7 +519,9 @@ export default function LoginPage() {
                                             src="/principal.jpg"
                                             alt="Dr. O. Mahesh"
                                             fill
+                                            sizes="(max-width: 768px) 100vw, 33vw"
                                             className="object-cover"
+                                            priority
                                         />
                                     </div>
                                     <div className="mt-4 text-center">
@@ -531,7 +533,7 @@ export default function LoginPage() {
                                 {/* Content Column */}
                                 <div className="w-full md:w-2/3">
                                     <h2 className="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                                        <Quote className="w-8 h-8 text-primary-500 rotate-180" />
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-quote w-8 h-8 text-primary-500 rotate-180"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 0v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" /><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 0v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" /></svg>
                                         Principal's Message
                                     </h2>
                                     <div className="prose prose-blue text-gray-600 space-y-4 text-justify leading-relaxed">
@@ -554,7 +556,7 @@ export default function LoginPage() {
                 onClick={() => setShowDirectorMessage(true)}
                 className="hidden md:flex fixed bottom-4 right-4 bg-white/90 backdrop-blur-sm text-primary-700 px-4 py-3 rounded-full shadow-xl hover:bg-white hover:scale-105 transition-all items-center gap-2 font-medium z-40 border border-white/20"
             >
-                <Quote className="w-5 h-5" />
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-quote w-5 h-5"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 0v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" /><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 0v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" /></svg>
                 <span className="hidden sm:inline">Director's Message</span>
             </button>
 
@@ -566,7 +568,7 @@ export default function LoginPage() {
                             onClick={() => setShowDirectorMessage(false)}
                             className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-full p-2 transition-colors z-10"
                         >
-                            <X className="w-6 h-6" />
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x w-6 h-6"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
                         </button>
 
                         <div className="p-6 md:p-10">
@@ -578,7 +580,9 @@ export default function LoginPage() {
                                             src="/director.jpg"
                                             alt="Rev. Fr. Dr. B. Joji Reddy S.J."
                                             fill
+                                            sizes="(max-width: 768px) 100vw, 33vw"
                                             className="object-cover"
+                                            priority
                                         />
                                     </div>
                                     <div className="mt-4 text-center">
@@ -590,7 +594,7 @@ export default function LoginPage() {
                                 {/* Content Column */}
                                 <div className="w-full md:w-2/3">
                                     <h2 className="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                                        <Quote className="w-8 h-8 text-primary-500 rotate-180" />
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-quote w-8 h-8 text-primary-500 rotate-180"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 0v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" /><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 0v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" /></svg>
                                         Director's Message
                                     </h2>
                                     <div className="prose prose-blue text-gray-600 space-y-4 text-justify leading-relaxed">
@@ -617,7 +621,7 @@ export default function LoginPage() {
                     onClick={() => setShowPrincipalMessage(true)}
                     className="flex-1 py-3 flex flex-col items-center justify-center gap-1 active:bg-gray-50 text-gray-600 hover:text-primary-600"
                 >
-                    <Quote className="w-5 h-5" />
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-quote w-5 h-5"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 0v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" /><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 0v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" /></svg>
                     <span className="text-xs font-medium">Principal's Message</span>
                 </button>
                 <div className="w-px bg-gray-200 my-2"></div>
@@ -625,7 +629,7 @@ export default function LoginPage() {
                     onClick={() => setShowDirectorMessage(true)}
                     className="flex-1 py-3 flex flex-col items-center justify-center gap-1 active:bg-gray-50 text-gray-600 hover:text-primary-600"
                 >
-                    <Quote className="w-5 h-5 rotate-180" />
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-quote w-5 h-5 rotate-180"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 0v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" /><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 0v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" /></svg>
                     <span className="text-xs font-medium">Director's Message</span>
                 </button>
             </div>
