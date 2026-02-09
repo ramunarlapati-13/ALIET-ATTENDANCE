@@ -36,7 +36,7 @@ export function useAuth() {
     return context;
 }
 
-const ADMIN_EMAIL = 'zestacademyonline@gmail.com';
+export const ADMIN_EMAILS = ['zestacademyonline@gmail.com', 'ramunarlapati27@gmail.com'];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -152,14 +152,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const signInWithGoogle = async (): Promise<{ isNewUser: boolean }> => {
         const provider = new GoogleAuthProvider();
         const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+
+        // Auto-provision Super Admins to bypass registration and ensure Admin role
+        if (user.email && ADMIN_EMAILS.includes(user.email)) {
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+
+            if (userDoc.exists()) {
+                // User exists: Promote to Admin if not already
+                const userData = userDoc.data() as User;
+                if (userData.role !== 'admin') {
+                    await updateDoc(userDocRef, { role: 'admin' });
+                    userData.role = 'admin';
+                }
+                setCurrentUser(userData);
+            } else {
+                // New User: Create as Admin immediately
+                const adminProfile: User = {
+                    uid: user.uid,
+                    email: user.email,
+                    name: user.displayName || 'Admin',
+                    role: 'admin',
+                    createdAt: serverTimestamp() as any,
+                    department: 'ADMIN', // Default metadata
+                };
+                await setDoc(userDocRef, adminProfile);
+                setCurrentUser(adminProfile);
+            }
+            return { isNewUser: false };
+        }
 
         // Check if user exists in Firestore
-        const userDoc = await getDoc(doc(db, 'users', result.user.uid));
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
         const isNewUser = !userDoc.exists();
 
         if (!isNewUser) {
             let userData = userDoc.data() as User;
-
             setCurrentUser(userData);
         }
 

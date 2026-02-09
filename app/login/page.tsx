@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import RoleSelectionModal from '@/components/auth/RoleSelectionModal';
-import { GraduationCap, Building2, Mail, Lock, User, Phone } from 'lucide-react';
+import { GraduationCap, Building2, Mail, Lock, User, Phone, Quote, X } from 'lucide-react';
 import Image from 'next/image';
 import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
@@ -18,6 +18,8 @@ export default function LoginPage() {
     const { signIn, signInWithGoogle, signUp } = useAuth();
     const [mode, setMode] = useState<LoginMode>('student');
     const [loading, setLoading] = useState(false);
+    const [showDirectorMessage, setShowDirectorMessage] = useState(false);
+    const [showPrincipalMessage, setShowPrincipalMessage] = useState(false);
     const [error, setError] = useState('');
     const [showRoleModal, setShowRoleModal] = useState(false);
     const [studentName, setStudentName] = useState('');
@@ -245,8 +247,8 @@ export default function LoginPage() {
                         <Image
                             src="/logo.png?v=2"
                             alt="ALIETAKE Logo"
-                            width={80}
-                            height={80}
+                            width={64}
+                            height={64}
                             className="object-contain"
                             priority
                             unoptimized // Add unoptimized to bypass Next.js cache for this image specifically
@@ -375,15 +377,13 @@ export default function LoginPage() {
                     {mode === 'institutional' && (
                         <form onSubmit={(e) => {
                             e.preventDefault();
-                            // If input looks like an ID (no @), append domain
+                            // If input looks like an ID (no @), append domain and ensure lowercase
                             const emailOrId = institutionalForm.email.trim();
-                            const finalEmail = emailOrId.includes('@') ? emailOrId : `${emailOrId}@aliet.ac.in`;
+                            const finalEmail = emailOrId.includes('@')
+                                ? emailOrId.toLowerCase()
+                                : `${emailOrId}@aliet.ac.in`.toLowerCase();
 
-                            // Update state momentarily or pass directly? 
-                            // Since state is tied to input, better to handle in a new handler or update here.
-                            // We can't easily update state and submit in one go without a useEffect or ref.
-                            // So let's modify the handleInstitutionalLogin to accept email as param or update it.
-                            // Actually, let's just allow the user to type ID/Email and handle the format in the submit handler.
+                            console.log('Attempting faculty login with:', finalEmail); // Debug log
                             handleInstitutionalLogin(e, finalEmail);
                         }} className="space-y-4">
                             <div>
@@ -489,6 +489,146 @@ export default function LoginPage() {
                 onClose={() => setShowRoleModal(false)}
                 onComplete={handleRoleModalComplete}
             />
+
+            {/* Principal's Message Button */}
+            <button
+                onClick={() => setShowPrincipalMessage(true)}
+                className="hidden md:flex fixed bottom-20 right-4 bg-white/90 backdrop-blur-sm text-primary-700 px-4 py-3 rounded-full shadow-xl hover:bg-white hover:scale-105 transition-all items-center gap-2 font-medium z-40 border border-white/20"
+            >
+                <Quote className="w-5 h-5" />
+                <span className="hidden sm:inline">Principal's Message</span>
+            </button>
+
+            {/* Principal's Message Modal */}
+            {showPrincipalMessage && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto relative animate-in zoom-in-95 duration-200">
+                        <button
+                            onClick={() => setShowPrincipalMessage(false)}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-full p-2 transition-colors z-10"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+
+                        <div className="p-6 md:p-10">
+                            <div className="flex flex-col md:flex-row gap-8 items-start">
+                                {/* Image Column */}
+                                <div className="w-full md:w-1/3 flex-shrink-0 flex flex-col items-center">
+                                    <div className="aspect-[3/4] relative w-full max-w-[240px] rounded-xl overflow-hidden shadow-lg ring-4 ring-gray-50">
+                                        <Image
+                                            src="/principal.jpg"
+                                            alt="Dr. O. Mahesh"
+                                            fill
+                                            className="object-cover"
+                                        />
+                                    </div>
+                                    <div className="mt-4 text-center">
+                                        <h3 className="font-bold text-gray-900 text-lg">Dr. O. Mahesh</h3>
+                                        <p className="text-primary-600 font-medium">Principal, ALIET</p>
+                                    </div>
+                                </div>
+
+                                {/* Content Column */}
+                                <div className="w-full md:w-2/3">
+                                    <h2 className="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                                        <Quote className="w-8 h-8 text-primary-500 rotate-180" />
+                                        Principal's Message
+                                    </h2>
+                                    <div className="prose prose-blue text-gray-600 space-y-4 text-justify leading-relaxed">
+                                        <p>
+                                            Andhra Loyola Institute of Engineering and Technology (ALIET) is a name to be reckoned with in the field of technical education in Andhra Pradesh. Within a short time from its beginnings, it emerged as one of the premier Engineering Institutions in the state with recognition of NBA and NAAC A+. ALIET with its strong industry tie-ups, industry-institution exchange programmes and exposures has an edge and it is selected for LITE–Leadership in Teaching Excellence in the state.
+                                        </p>
+                                        <p>
+                                            Academic Excellence with compassionate commitment is at the very heart of the vision and mission of the institution which moulds the students as global citizens. ALIET boasts of the committed and talented faculty who constantly monitor the progress of the students, and prepare them with cutting edge technological skills for the fast changing times. Students of ALIET with discipline and technical skills continue to find placement in several reputed industries and hence the institution has an impressive placement record. ALIET ensures positive academic framework and encourages students of different social milieu to be global players in science and technology.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Director's Message Button */}
+            <button
+                onClick={() => setShowDirectorMessage(true)}
+                className="hidden md:flex fixed bottom-4 right-4 bg-white/90 backdrop-blur-sm text-primary-700 px-4 py-3 rounded-full shadow-xl hover:bg-white hover:scale-105 transition-all items-center gap-2 font-medium z-40 border border-white/20"
+            >
+                <Quote className="w-5 h-5" />
+                <span className="hidden sm:inline">Director's Message</span>
+            </button>
+
+            {/* Director's Message Modal */}
+            {showDirectorMessage && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto relative animate-in zoom-in-95 duration-200">
+                        <button
+                            onClick={() => setShowDirectorMessage(false)}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-full p-2 transition-colors z-10"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+
+                        <div className="p-6 md:p-10">
+                            <div className="flex flex-col md:flex-row gap-8 items-start">
+                                {/* Image Column */}
+                                <div className="w-full md:w-1/3 flex-shrink-0 flex flex-col items-center">
+                                    <div className="aspect-[3/4] relative w-full max-w-[240px] rounded-xl overflow-hidden shadow-lg ring-4 ring-gray-50">
+                                        <Image
+                                            src="/director.jpg"
+                                            alt="Rev. Fr. Dr. B. Joji Reddy S.J."
+                                            fill
+                                            className="object-cover"
+                                        />
+                                    </div>
+                                    <div className="mt-4 text-center">
+                                        <h3 className="font-bold text-gray-900 text-lg">Rev. Fr. Dr. B. Joji Reddy S.J.</h3>
+                                        <p className="text-primary-600 font-medium">Director, ALIET</p>
+                                    </div>
+                                </div>
+
+                                {/* Content Column */}
+                                <div className="w-full md:w-2/3">
+                                    <h2 className="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                                        <Quote className="w-8 h-8 text-primary-500 rotate-180" />
+                                        Director's Message
+                                    </h2>
+                                    <div className="prose prose-blue text-gray-600 space-y-4 text-justify leading-relaxed">
+                                        <p>
+                                            Andhra Loyola Institute of Engineering and Technology (ALIET) is an autonomous institution nationally accredited by NAAC and NBA, and boasts of a legacy of driving academic excellence, fostering human interactions with a vision of preparing students as men and women for others. The sprawling campus with greenery and serenity is a home for the young to dream and shape their careers. It nurtures students' dreams and navigates their personal and academic life and instills in them the confidence to face the world with all its complexities and challenges. ALIET seeks to provide an environment in which a student is confident, comfortable and guided in order to hone individual's skills and talents to become competent and committed engineers.
+                                        </p>
+                                        <p>
+                                            ALIET promotes a culture of learning in a culture of human interactions and exchange, drives the academic excellence by providing space and platform to think, ideate, explore and create. It emphasizes overcoming adversity to realize dreams and be leaders to give the world an alternative narrative and perspective of life. Today's enemy has no face but continues to threaten the world in the form of technology with all its adverse effects, and hence it is very pertinent to note that ALIET encourages students to learn, relearn and unlearn in the process of becoming individuals who can make a difference and create an impact in the society they live.
+                                        </p>
+                                        <p>
+                                            We wish and desire that our students are competent, compassionate and committed individuals who can be the change and the agents of transformation. The institution continues to esteem highly the trust of parents and treads very carefully in shaping the young minds to become global citizens for tomorrow, and as men and women for others.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Mobile Bottom Navigation Bar - Only visible on mobile */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] border-t border-gray-100 z-50 flex pb-1">
+                <button
+                    onClick={() => setShowPrincipalMessage(true)}
+                    className="flex-1 py-3 flex flex-col items-center justify-center gap-1 active:bg-gray-50 text-gray-600 hover:text-primary-600"
+                >
+                    <Quote className="w-5 h-5" />
+                    <span className="text-xs font-medium">Principal's Message</span>
+                </button>
+                <div className="w-px bg-gray-200 my-2"></div>
+                <button
+                    onClick={() => setShowDirectorMessage(true)}
+                    className="flex-1 py-3 flex flex-col items-center justify-center gap-1 active:bg-gray-50 text-gray-600 hover:text-primary-600"
+                >
+                    <Quote className="w-5 h-5 rotate-180" />
+                    <span className="text-xs font-medium">Director's Message</span>
+                </button>
+            </div>
         </div>
     );
 }

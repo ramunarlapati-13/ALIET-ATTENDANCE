@@ -28,7 +28,9 @@ service cloud.firestore {
     }
     
     function isAdmin() {
-      return isAuthenticated() && getUserRole() == 'admin';
+      return isAuthenticated() && 
+             (request.auth.token.email == 'zestacademyonline@gmail.com' || 
+              request.auth.token.email == 'ramunarlapati27@gmail.com');
     }
     
     function isStaffOrAbove() {
