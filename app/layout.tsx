@@ -4,6 +4,8 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import InstallPrompt from "@/components/ui/InstallPrompt";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import { ThemeProvider } from "@/context/ThemeContext";
+import ThemeToggleFloating from "@/components/ui/ThemeToggleFloating";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -38,9 +40,12 @@ export default function RootLayout({
         <html lang="en">
             <body className={inter.className}>
                 <AuthProvider>
-                    <ServiceWorkerRegister />
-                    {children}
-                    <InstallPrompt />
+                    <ThemeProvider>
+                        <ServiceWorkerRegister />
+                        {children}
+                        <InstallPrompt />
+                        <ThemeToggleFloating />
+                    </ThemeProvider>
                 </AuthProvider>
             </body>
         </html>

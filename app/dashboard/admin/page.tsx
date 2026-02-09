@@ -4,9 +4,10 @@ import { useEffect, useState, useMemo } from 'react';
 import { collection, query, where, orderBy, limit, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import { Users, GraduationCap, Building2, LogOut, Search, Filter, Moon, Sun } from 'lucide-react';
+import { Users, GraduationCap, Building2, LogOut, Search, Filter, Moon, Sun, UserPlus } from 'lucide-react';
 import SpotlightCursor from '@/components/ui/SpotlightCursor';
 
 interface Student {
@@ -45,7 +46,7 @@ function AdminDashboard() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterBranch, setFilterBranch] = useState('all');
     const [filterYear, setFilterYear] = useState('all');
-    const [darkMode, setDarkMode] = useState(false);
+    const { darkMode, toggleTheme } = useTheme();
 
     useEffect(() => {
         const unsubscribes: Unsubscribe[] = [];
@@ -114,14 +115,7 @@ function AdminDashboard() {
         router.push('/login');
     };
 
-    const toggleTheme = () => {
-        setDarkMode(!darkMode);
-        if (!darkMode) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    };
+
 
     const filteredStudents = students.filter(student => {
         const matchesSearch =
@@ -167,6 +161,13 @@ function AdminDashboard() {
                                 <p className="text-sm text-gray-600 dark:text-gray-400">Welcome, {currentUser?.name}</p>
                             </div>
                             <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => router.push('/register-faculty')}
+                                    className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white hover:bg-primary-700 rounded-lg transition-colors shadow-sm"
+                                >
+                                    <UserPlus className="w-5 h-5" />
+                                    <span className="hidden sm:inline">Register Faculty</span>
+                                </button>
                                 <button
                                     onClick={toggleTheme}
                                     className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
