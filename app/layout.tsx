@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import InstallPrompt from "@/components/ui/InstallPrompt";
@@ -10,7 +9,7 @@ import NavigationDock from "@/components/ui/NavigationDock";
 import LoadingBar from "@/components/ui/LoadingBar";
 import { Suspense } from "react";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = { className: "font-sans" }; // Fallback to CSS defined font stack
 
 export const metadata: Metadata = {
     title: "ALIETAKE - College Management System",

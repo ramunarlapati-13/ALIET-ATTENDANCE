@@ -8,8 +8,6 @@ import { GraduationCap, Building2, Mail, Lock, User, Phone, Quote, X } from 'luc
 import Image from 'next/image';
 import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import studentData from '@/data/students.json';
-import facultyData from '@/data/faculty.json';
 import { detectBranchInfo, detectFacultyInfo } from '@/utils/branchDetector';
 
 type LoginMode = 'student' | 'institutional';
@@ -70,11 +68,18 @@ export default function LoginPage() {
                 }
 
                 // Fallback: Check local students.json
-                const localName = (studentData as any)[regNo];
-                if (localName) {
-                    setStudentName(localName);
-                    setError('');
-                } else {
+                try {
+                    const studentModule = await import('@/data/students.json');
+                    const studentData = studentModule.default as any;
+                    const localName = studentData[regNo];
+                    if (localName) {
+                        setStudentName(localName);
+                        setError('');
+                    } else {
+                        setStudentName('');
+                    }
+                } catch (e) {
+                    console.error("Local student lookup failed", e);
                     setStudentName('');
                 }
 
@@ -82,11 +87,17 @@ export default function LoginPage() {
                 console.error('Error looking up student:', err);
 
                 // Fallback on error (e.g. permission denied): Check local students.json
-                const localName = (studentData as any)[regNo];
-                if (localName) {
-                    setStudentName(localName);
-                    setError('');
-                } else {
+                try {
+                    const studentModule = await import('@/data/students.json');
+                    const studentData = studentModule.default as any;
+                    const localName = studentData[regNo];
+                    if (localName) {
+                        setStudentName(localName);
+                        setError('');
+                    } else {
+                        setStudentName('');
+                    }
+                } catch (e) {
                     setStudentName('');
                 }
             } finally {
@@ -126,29 +137,45 @@ export default function LoginPage() {
                     setFacultyDept(userData.department || '');
                 } else {
                     // Fallback 1: Local faculty.json
-                    const localName = (facultyData as any)[empId];
+                    try {
+                        const facultyModule = await import('@/data/faculty.json');
+                        const facultyData = facultyModule.default as any;
+                        const localName = facultyData[empId];
+
+                        if (localName) {
+                            setFacultyName(localName);
+                            if (structuralInfo) setFacultyDept(structuralInfo.branch);
+                        } else if (structuralInfo) {
+                            setFacultyName('');
+                            setFacultyDept(structuralInfo.branch);
+                        } else {
+                            setFacultyName('');
+                            setFacultyDept('');
+                        }
+                    } catch (e) {
+                        if (structuralInfo) {
+                            setFacultyName('');
+                            setFacultyDept(structuralInfo.branch);
+                        }
+                    }
+                }
+            } catch (err) {
+                // Fallback 2: Local faculty.json on error (permission denied)
+                try {
+                    const facultyModule = await import('@/data/faculty.json');
+                    const facultyData = facultyModule.default as any;
+                    const localName = facultyData[empId];
                     if (localName) {
                         setFacultyName(localName);
                         if (structuralInfo) setFacultyDept(structuralInfo.branch);
                     } else if (structuralInfo) {
-                        setFacultyName('');
                         setFacultyDept(structuralInfo.branch);
                     } else {
                         setFacultyName('');
                         setFacultyDept('');
                     }
-                }
-            } catch (err) {
-                // Fallback 2: Local faculty.json on error (permission denied)
-                const localName = (facultyData as any)[empId];
-                if (localName) {
-                    setFacultyName(localName);
+                } catch (e) {
                     if (structuralInfo) setFacultyDept(structuralInfo.branch);
-                } else if (structuralInfo) {
-                    setFacultyDept(structuralInfo.branch);
-                } else {
-                    setFacultyName('');
-                    setFacultyDept('');
                 }
             } finally {
                 setLookingUpFaculty(false);
@@ -185,19 +212,21 @@ export default function LoginPage() {
         } catch (err: any) {
             // Check if student exists in registry
             const regNo = studentForm.registrationNumber.toUpperCase();
-            const existsInRegistry = (studentData as any)[regNo];
 
-            // If user not found (first time login) AND credentials might match default (password == regNo or they entered the correct regNo)
-            // AND they are a valid student in our list
-            if ((err.message?.includes('auth/user-not-found') || err.message?.includes('auth/invalid-credential')) &&
-                existsInRegistry) {
+            // Dynamic Import for fallback check
+            let existsInRegistry = null;
+            try {
+                const studentModule = await import('@/data/students.json');
+                const studentData = studentModule.default as any;
+                existsInRegistry = studentData[regNo];
+            } catch (e) {
+                // Ignore if fails
+            }
 
-                // If they entered the correct registration number as password (or any password, but for security maybe enforce default?)
-                // Actually, if account doesn't exist, we can't verify password.
-                // But user instruction is "simple go to student dashboard".
-                // So we implicitly trust if they have the RegNo and are in the list, and are trying to "Login".
-                // To be safe, let's just create the account with the password they provided.
+            const isAuthError = err.code?.includes('auth/user-not-found') || err.message?.includes('auth/user-not-found') || err.message?.includes('auth/invalid-credential');
 
+            if (isAuthError && existsInRegistry) {
+                // Auto-register logic
                 try {
                     const email = `${regNo}@aliet.ac.in`.toLowerCase();
                     const password = studentForm.password;
@@ -225,16 +254,17 @@ export default function LoginPage() {
 
                     router.push('/dashboard/student');
                     return;
-                } catch (registerErr: any) {
-                    console.error("Auto-registration failed", registerErr);
-                    if (registerErr.code === 'auth/email-already-in-use') {
+
+                } catch (regErr: any) {
+                    console.error("Auto-registration failed", regErr);
+                    if (regErr.code === 'auth/email-already-in-use') {
                         setError("Account already exists. Please check your password.");
                     } else {
-                        setError("Unable to set up your account automatically. Please try again or contact support.");
+                        setError(regErr.message || 'Login failed');
                     }
                 }
-            } else if (err.message?.includes('auth/invalid-credential') || err.message?.includes('auth/user-not-found')) {
-                setError('Invalid registration number or password.');
+            } else if (isAuthError) {
+                setError('Invalid Registration Number or Password');
             } else {
                 setError(err.message || 'Failed to sign in');
             }

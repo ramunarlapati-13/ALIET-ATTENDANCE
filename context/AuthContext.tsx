@@ -12,7 +12,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
-import studentData from '@/data/students.json';
+// Removed static import of studentData to reduce bundle size
 import { User, UserRole } from '@/types';
 
 interface AuthContextType {
@@ -81,16 +81,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 } else {
                     // Handle "zombie" account: Auth exists, Firestore doc missing
                     // Try to auto-create if it looks like a student
-                    if (user.email && user.email.toLowerCase().endsWith('@aliet.edu')) {
+                    if (user.email && (user.email.toLowerCase().endsWith('@aliet.ac.in') || user.email.toLowerCase().endsWith('@aliet.edu'))) {
                         const regNo = user.email.split('@')[0].toUpperCase();
-                        const studentName = (studentData as any)[regNo];
+                        let studentName = regNo;
 
-                        // Import studentData locally if needed, or we just trust the email format for now
+                        try {
+                            // Dynamically import student data only if needed
+                            const module = await import('@/data/students.json');
+                            const studentData = module.default as any;
+                            if (studentData[regNo]) {
+                                studentName = studentData[regNo];
+                            }
+                        } catch (e) {
+                            console.error("Could not load local student data fallback", e);
+                        }
+
                         // To be safe, let's keep it simple: create basic profile
                         const userProfile: User = {
                             uid: user.uid,
                             email: user.email,
-                            name: studentName || regNo, // Fallback to RegNo if name not found
+                            name: studentName, // Fallback to RegNo if name not found
                             role: 'student',
                             registrationNumber: regNo,
                             employeeId: '',
