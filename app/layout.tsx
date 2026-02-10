@@ -7,6 +7,8 @@ import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import { ThemeProvider } from "@/context/ThemeContext";
 import ThemeToggleFloating from "@/components/ui/ThemeToggleFloating";
 import NavigationDock from "@/components/ui/NavigationDock";
+import LoadingBar from "@/components/ui/LoadingBar";
+import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -43,6 +45,9 @@ export default function RootLayout({
                 <AuthProvider>
                     <ThemeProvider>
                         <ServiceWorkerRegister />
+                        <Suspense fallback={null}>
+                            <LoadingBar />
+                        </Suspense>
                         {children}
                         <InstallPrompt />
                         <ThemeToggleFloating />

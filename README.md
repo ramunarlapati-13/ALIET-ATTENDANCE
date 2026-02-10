@@ -1,171 +1,143 @@
-# ALIETAKE College Management System
+# 🎓 ALIETAKE - College Management System
 
-A comprehensive web application for college attendance tracking, academic performance monitoring, and fee management with role-based access control.
+A state-of-the-art, high-performance web application designed for comprehensive college management. Built with **Next.js 14**, **Firebase**, and **Tailwind CSS**, it provides seamless attendance tracking, academic monitoring, and administrative control with a focus on speed and user experience.
+
+---
+
+## 🗺️ Website Structure & Sitemap
+
+```mermaid
+graph TD
+    A[Landing / Login] --> B{Role Check}
+    B -->|Admin| C[Admin Dashboard]
+    B -->|Faculty| D[Faculty Portal]
+    B -->|Student| E[Student Portal]
+
+    C --> C1[User Management]
+    C --> C2[Branch Statistics]
+    C --> C3[Activity Logs]
+    C --> C4[Data Import Tool]
+
+    D --> D1[Mark Attendance]
+    D --> D2[Recent Submissions]
+    D --> D3[Student Analytics]
+    D --> D4[Faculty Profile]
+
+    E --> E1[Attendance History]
+    E --> E2[Academic Records]
+    E --> E3[Profile Settings]
+```
+
+### 📍 Key Routes
+-   **`/`** (Auto-redirects to Login)
+-   **`/login`** - Intelligent Authentication Portal (supports Student/Faculty/Admin auto-detection).
+-   **`/register`** - New User Onboarding with real-time registry validation.
+-   **`/dashboard/admin`** - Master control center with live activity feeds and spotlight UI.
+-   **`/dashboard/faculty`** - Faculty hub for marking attendance and viewing analytics.
+-   **`/dashboard/faculty/attendance`** - Optimized attendance marker with bulk actions and lateral entry support.
+-   **`/dashboard/student`** - Personalized student portal for attendance and academics.
+-   **`/import-students`** - Bulk data ingestion utility for institutional migrations.
+
+---
 
 ## 🚀 Key Features
 
-### 👨‍💼 Admin Dashboard (New!)
--   **Student Management**: View all students organized by branch with comprehensive filtering
--   **Branch-wise Statistics**: Real-time count of students in each branch (CIVIL, EEE, MECH, ECE, CSE, IT, CSM, CSD)
--   **Faculty Overview**: Complete faculty directory with department-wise organization
--   **Search & Filter**: Advanced search by name, email, registration number, or employee ID
--   **Data Import Tool**: Easy import of student data from JSON files with progress tracking
--   **Real-Time Updates**: Live monitoring of student registrations and logins via Firestore listeners
--   **Dark Mode**: Full support for light and dark themes with persistent preference storage
--   **Spotlight UI**: Exclusive interactive cursor effect for the admin interface
+### ⚡ Performance & UX (New!)
+-   **Optimistic UI Updates**: Instant visual feedback on attendance submissions and user deletions—no waiting for database round-trips.
+-   **Fast-Feeling Loading Bars**: Intelligent progress indicators that jump to 70% instantly to signify responsiveness.
+-   **Skeleton Screens**: Beautiful, shimmering placeholders that prevent layout shift during data fetching.
+-   **Real-Time Synchronization**: Live updates across all dashboards using Firestore Listeners and Realtime Database.
 
-### 🎓 Attendance Management
--   **Smart Filtering**: Dynamically filter students by **Branch**, **Year**, and **Section**.
--   **Intelligent Grouping**: Automatically groups **Regular (1st Year)** and **Lateral Entry (2nd Year)** students correctly based on their join year (e.g., 23HP Regular + 24HP Lateral → 3rd Year).
--   **Visual Indicators**: Color-coded badges for student types (Reg/Lat).
--   **Bulk Actions**: "Mark All Present" / "Mark All Absent" buttons for rapid entry.
--   **Mobile Optimized**: Fully responsive tables and controls for easy marking on phones.
+### 👨‍💼 Admin Dashboard
+-   **Spotlight Interface**: Modern dark mode with a custom interactive cursor effect.
+-   **Live Activity Logs**: Real-time monitoring of system-wide logins and critical actions.
+-   **Smart User Management**: Edit, delete, and promote users with immediate interface updates.
+-   **Branch Analytics**: Dynamic student counts across all 8 engineering branches (CSE, IT, ECE, EEE, etc.).
 
-### 👤 User & Role Management
--   **Multi-Role Auth**: Supported roles: Student, Faculty, Admin.
--   **Automated Sync**: Faculty profiles are automatically synced to their respective **Department Collections** (`admin/faculty/branch/{Dept}`) upon login.
--   **Smart Registration**:
-    -   **Instant Validation**: Real-time checking of Registration Numbers (Year, College Code, Branch).
-    -   **Auto-Fill**: Automatically detects Branch and Entry Level from Reg No.
-    -   **Registry Lookup**: Pre-fills student names from the institutional database (`students.json`).
+### 🎓 Attendance Engine
+-   **Intelligent Branch Detection**: Automatically identifies branch and year from registration numbers.
+-   **Lateral Entry Support**: Correctly identifies 2nd-year joiners and calculates their current academic year.
+-   **Bulk Operations**: Mark entire classes as present or absent in a single click.
+-   **History Tracking**: 2-hour edit window for faculty with detailed absentee lists.
 
-### 📱 Responsive Design
--   **Mobile-First**: All dashboard screens, login forms, and modals are optimized for mobile devices.
--   **Touch-Friendly**: Large touch targets, full-width inputs, and scrollable data tables.
+---
 
 ## 🛠 Tech Stack
 
--   **Frontend**: Next.js 14 (App Router) with TypeScript
--   **Styling**: Tailwind CSS
--   **Backend**: Firebase (Firestore + Realtime Database)
--   **Authentication**: Firebase Auth (Google OAuth + Email/Password)
--   **Charts**: Recharts
--   **State Management**: React Context API
--   **Data Processing**: XLSX for Excel imports
+| Layer | Technology |
+| :--- | :--- |
+| **Framework** | Next.js 14 (App Router) |
+| **Language** | TypeScript |
+| **Styling** | Tailwind CSS (Dark Mode + Custom Animations) |
+| **Primary DB** | Firebase Firestore (Persistent Data) |
+| **Live Sync** | Firebase Realtime Database (Instant Updates) |
+| **Auth** | Firebase Auth (Google OAuth + Email/Pass) |
+| **Icons** | Lucide React |
+
+---
 
 ## 🏁 Getting Started
 
-### Prerequisites
-
--   Node.js 18+ installed
--   Firebase project created
--   Firebase CLI installed (`npm install -g firebase-tools`)
-
 ### Installation
 
-1.  Clone the repository:
+1.  **Clone & Install**:
     ```bash
     git clone <repository-url>
-    cd ALIET-ATTENDANCE
-    ```
-
-2.  Install dependencies:
-    ```bash
     npm install
     ```
 
-3.  Set up environment variables:
-    -   Copy `.env.example` to `.env.local`
-    -   Fill in your Firebase configuration values
+2.  **Environment Setup**:
+    Create `.env.local` and add your Firebase config:
+    ```env
+    NEXT_PUBLIC_FIREBASE_API_KEY=your_key
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project
+    ...
+    ```
 
-4.  Run the development server:
+3.  **Run Development**:
     ```bash
     npm run dev
     ```
 
-5.  Open [http://localhost:3000](http://localhost:3000) in your browser
+---
 
-## 📂 Project Structure
+## 🔒 Database Architecture
 
-```
+The system utilizes a hybrid Firebase approach for maximum efficiency:
+
+### Firestore (Persistent Data)
+-   **`users/`**: Core user profiles and role configurations.
+-   **`attendance/`**: Historical attendance records indexed by date.
+-   **`logs/`**: Detailed activity logs for administrative auditing.
+-   **`admin/students/{branch}/`**: Optimized student directory organized by engineering discipline.
+
+### Realtime Database (Live Data)
+-   **`attendance/{date}/{branch}/{year}/{section}`**: Instant synchronization for live class monitoring and department-wide visibility.
+
+---
+
+## 📂 Project Directory Structure
+
+```text
 ALIET-ATTENDANCE/
-├── app/                    # Next.js App Router
-│   ├── login/             # Login Page
-│   ├── register/          # Registration Page
-│   ├── dashboard/         # Role-based Dashboards
-│   │   ├── admin/         # Admin Dashboard (Updated with Real-time & Dark Mode)
-│   │   │   └── page.tsx      # Main Admin View
-│   │   ├── faculty/       # Faculty Attendance & Marks
-│   │   ├── student/       # Student Portal
-│   │   └── page.tsx       # Dashboard Layout/Redirect
-│   └── import-students/   # Student Import Tool (NEW!)
-├── components/            # Reusable UI Components
-│   ├── auth/             # RoleModal, ProtectedRoute
-│   ├── ui/               # SpotlightCursor, Buttons, Cards
-│   └── announcements/    # Ticker Components
-├── data/                 # Static Data (Student Registry)
-│   └── students.json     # Student Database
-├── context/              # Auth Context
-├── lib/                  # Firebase Config
-├── utils/                # Helper Logic (Branch Detector)
-└── types/                # TypeScript Interfaces
+├── app/                    # App Router Pages & Layouts
+│   ├── dashboard/         # Role-Specific Interfaces
+│   ├── login/             # Auth Pages
+│   └── register/          # User Onboarding
+├── components/            # UI Component Library
+│   ├── ui/               # LoadingBar, Skeleton, Spotlight
+│   └── auth/             # Role Wrappers
+├── context/              # Global State (Auth, Theme)
+├── data/                 # Static JSON Assets
+├── lib/                  # Service Configs (Firebase)
+├── utils/                # Business Logic Helpers
+└── public/               # Static Assets & PWA Config
 ```
 
-## 🌐 Website Sitemap
+---
 
--   **/** (Auto-redirects to Login)
--   **/login** - Authentication Portal (Student/Faculty/Admin)
--   **/register** - New User Registration
--   **/dashboard**:
-    -   **/admin** - Administrator Controls
-        -   *User Management*
-        -   *Branch Analytics*
-        -   *Activity Logs*
-    -   **/faculty** - Faculty Portal
-        -   *Attendance Marking*
-        -   *Student Overview*
-    -   **/student** - Student Portal
-        -   *Attendance History*
-        -   *Academic Performance*
--   **/import-students** - Bulk Data Import Tool
+## 📜 License & Legal
 
-## 🔒 Firebase Structure
+© 2026 **ALIET College**. Designed and Developed for Advanced Campus Management. All rights reserved.
 
-### Firestore Collections
-
--   **`users`**: User profiles for faculty and admin
--   **`admin/students/{branch}/{registrationNumber}`**: Students organized by branch
-    -   `/admin/students/CIVIL/` - Civil Engineering students
-    -   `/admin/students/EEE/` - Electrical & Electronics students
-    -   `/admin/students/MECH/` - Mechanical Engineering students
-    -   `/admin/students/ECE/` - Electronics & Communication students
-    -   `/admin/students/CSE/` - Computer Science students
-    -   `/admin/students/IT/` - Information Technology students
-    -   `/admin/students/CSM/` - CSE (AI & ML) students
-    -   `/admin/students/CSD/` - CSE (Data Science) students
--   **`admin/faculty/branch/{DeptName}`**: Faculty records sorted by department
--   **`attendance/{date}`**: Daily attendance logs
--   **`academic_records`**: Student marks
-
-## 🎯 Supported Branches
-
-The system supports **8 engineering branches**:
-
-1. **CIVIL** - Civil Engineering
-2. **EEE** - Electrical and Electronics Engineering
-3. **MECH** - Mechanical Engineering
-4. **ECE** - Electronics and Communication Engineering
-5. **CSE** - Computer Science and Engineering
-6. **IT** - Information Technology
-7. **CSM** - Computer Science and Engineering (AI & ML)
-8. **CSD** - Computer Science and Engineering (Data Science)
-
-## 📥 Importing Students
-
-1. Navigate to `/import-students`
-2. The system will read from `data/students.json`
-3. Click "Import Students" to add them to Firebase
-4. Students are automatically organized by branch
-
-## 🔐 Admin Setup
-
-To set an admin user:
-1. Register a user account
-2. Go to Firebase Console → Firestore
-3. Find the user document in the `users` collection
-4. Change the `role` field to `admin`
-5. Access the admin dashboard at `/dashboard/admin`
-
-## 📜 License
-
-© 2026 ALIET College. All rights reserved.

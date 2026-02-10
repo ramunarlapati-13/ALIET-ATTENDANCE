@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { User, BarChart3, Presentation, LogOut, X, Users, AlertCircle, CheckCircle } from 'lucide-react';
 import studentData from '@/data/students.json';
+import { DashboardSkeleton } from '@/components/ui/Skeleton';
 
 export default function FacultyDashboard() {
     const { currentUser, loading, signOut } = useAuth();
@@ -23,7 +24,7 @@ export default function FacultyDashboard() {
         }
     };
 
-    if (loading) return <div className="flex h-screen items-center justify-center">Loading...</div>;
+    if (loading) return <DashboardSkeleton />;
     if (!currentUser || (currentUser.role !== 'faculty' && currentUser.role !== 'hod')) return null;
 
     return (

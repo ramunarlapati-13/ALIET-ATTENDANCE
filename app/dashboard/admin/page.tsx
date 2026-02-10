@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { Users, GraduationCap, Building2, LogOut, Search, Filter, Moon, Sun, UserPlus, Edit, X, Save, Trash2, AlertTriangle } from 'lucide-react';
 import SpotlightCursor from '@/components/ui/SpotlightCursor';
+import { TableSkeleton } from '@/components/ui/Skeleton';
 
 interface Student {
     uid: string;
@@ -63,7 +64,6 @@ function AdminDashboard() {
     useEffect(() => {
         const unsubscribes: Unsubscribe[] = [];
 
-        // 1. Listen for Students Data (Per Branch)
         // 1. Listen for ALL Students from Users Collection
         const studentsQuery = query(
             collection(db, 'users'),
@@ -207,6 +207,22 @@ function AdminDashboard() {
 
         setDeleteLoading(true);
         try {
+            // --- OPTIMISTIC UI: Remove from local maps immediately ---
+            const isStudent = 'registrationNumber' in userToDelete;
+            if (isStudent) {
+                setStudentsMap(prev => {
+                    const newMap = { ...prev };
+                    Object.keys(newMap).forEach(branch => {
+                        newMap[branch] = newMap[branch].filter(s => s.uid !== userToDelete.uid);
+                    });
+                    return newMap;
+                });
+            } else {
+                setFaculty(prev => prev.filter(f => f.uid !== userToDelete.uid));
+            }
+            setDeleteModalOpen(false);
+            // ---------------------------------------------------------
+
             const { doc: docImport, deleteDoc } = await import('firebase/firestore');
 
             // Delete from main users collection
@@ -214,8 +230,6 @@ function AdminDashboard() {
             await deleteDoc(userRef);
 
             // Delete from hierarchy based on role
-            const isStudent = 'registrationNumber' in userToDelete;
-
             if (isStudent) {
                 const student = userToDelete as Student;
                 if (student.branch && student.year && student.section) {
@@ -231,7 +245,6 @@ function AdminDashboard() {
                 }
             }
 
-            setDeleteModalOpen(false);
             setUserToDelete(null);
         } catch (error) {
             console.error('Error deleting user:', error);
@@ -240,8 +253,6 @@ function AdminDashboard() {
             setDeleteLoading(false);
         }
     };
-
-
 
     const filteredStudents = students.filter(student => {
         const matchesSearch =
@@ -472,10 +483,7 @@ function AdminDashboard() {
                         {/* Table Content */}
                         <div className="p-6">
                             {loading ? (
-                                <div className="text-center py-12">
-                                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-                                    <p className="mt-4 text-gray-600">Loading data...</p>
-                                </div>
+                                <TableSkeleton rows={8} cols={activeTab === 'students' ? 7 : activeTab === 'faculty' ? 5 : 4} />
                             ) : (
                                 <div className="overflow-x-auto">
                                     {activeTab === 'students' ? (

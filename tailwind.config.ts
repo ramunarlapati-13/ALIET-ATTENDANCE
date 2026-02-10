@@ -38,8 +38,13 @@ const config: Config = {
             animation: {
                 'scroll': 'scroll 30s linear infinite',
                 'fade-in': 'fadeIn 0.5s ease-in-out',
+                'shimmer': 'shimmer 2s infinite linear',
             },
             keyframes: {
+                shimmer: {
+                    '0%': { backgroundPosition: '200% 0' },
+                    '100%': { backgroundPosition: '-200% 0' },
+                },
                 scroll: {
                     '0%': { transform: 'translateX(100%)' },
                     '100%': { transform: 'translateX(-100%)' },

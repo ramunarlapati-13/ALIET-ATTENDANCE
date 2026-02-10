@@ -4,10 +4,12 @@ import { useState, useMemo, useEffect } from 'react';
 import studentData from '@/data/students.json';
 import { detectBranchInfo } from '@/utils/branchDetector';
 import { UserCheck, UserX, Save, Filter, AlertTriangle, X, Edit2, Clock, RefreshCw, Users, CheckCircle } from 'lucide-react';
+import { Skeleton, TableSkeleton } from '@/components/ui/Skeleton';
 
 import { useAuth } from '@/context/AuthContext';
-import { db } from '@/lib/firebase/config';
+import { db, realtimeDb } from '@/lib/firebase/config';
 import { doc, setDoc, collection, addDoc, serverTimestamp, getDoc, query, where, getDocs, orderBy, limit, Timestamp } from 'firebase/firestore';
+import { ref, set as setDb } from 'firebase/database';
 
 export default function AttendancePage() {
     const { currentUser } = useAuth();
@@ -33,6 +35,7 @@ export default function AttendancePage() {
     const [recentSubmissions, setRecentSubmissions] = useState<any[]>([]);
     const [showRecentSubmissions, setShowRecentSubmissions] = useState(false);
     const [viewingAbsentees, setViewingAbsentees] = useState<any>(null);
+    const [loadingRecent, setLoadingRecent] = useState(false);
 
     // Modal State
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -89,6 +92,7 @@ export default function AttendancePage() {
         }
 
         console.log('loadRecentSubmissions: Starting to load for user:', currentUser.uid);
+        setLoadingRecent(true);
 
         try {
             // Query without orderBy to avoid index requirement
@@ -98,16 +102,11 @@ export default function AttendancePage() {
                 limit(100) // Get recent records
             );
 
-            console.log('loadRecentSubmissions: Executing query...');
             const snapshot = await getDocs(q);
-            console.log('loadRecentSubmissions: Got', snapshot.docs.length, 'total documents');
-
-            const allDocs = snapshot.docs.map(doc => ({
+            const allDocs = snapshot.docs.map((doc: any) => ({
                 id: doc.id,
                 ...doc.data()
             }));
-
-            console.log('loadRecentSubmissions: Sample doc:', allDocs[0]);
 
             // Filter by current faculty (or department for HODs) and sort by timestamp
             const submissions = allDocs
@@ -116,7 +115,6 @@ export default function AttendancePage() {
                     const isHODOfDepartment = currentUser.role === 'hod' && sub.branch === currentUser.department;
 
                     if (isOwnSubmission || isHODOfDepartment) {
-                        console.log('loadRecentSubmissions: Found matching submission:', sub.id);
                         return true;
                     }
                     return false;
@@ -129,11 +127,12 @@ export default function AttendancePage() {
                 })
                 .slice(0, 20); // Show more for HODs if needed (increased to 20)
 
-            console.log('loadRecentSubmissions: Filtered to', submissions.length, 'submissions for this faculty');
             setRecentSubmissions(submissions);
         } catch (error) {
             console.error('Error loading recent submissions:', error);
-            alert('Failed to load recent submissions. Check console for details.');
+            alert('Failed to load recent submissions.');
+        } finally {
+            setLoadingRecent(false);
         }
     };
 
@@ -212,7 +211,7 @@ export default function AttendancePage() {
             )
             .sort((a, b) => a.regNo.localeCompare(b.regNo));
         return mapped;
-    }, [selectedBranch, selectedYear, selectedSection]);
+    }, [selectedBranch, selectedYear]);
 
     const handleMark = (regNo: string, status: 'Present' | 'Absent') => {
         setAttendance(prev => ({
@@ -277,11 +276,7 @@ export default function AttendancePage() {
             const docId = `${attendanceDate}_${selectedBranch}_${selectedYear}_${selectedSection}`;
             const attendanceRef = doc(db, 'attendance', docId);
 
-            // Debug: Check user ID
-            console.log('Submitting attendance - currentUser:', currentUser);
-            console.log('currentUser.uid:', currentUser.uid);
             const facultyId = currentUser.uid || currentUser.email || 'unknown';
-            console.log('Using facultyId:', facultyId);
 
             const attendanceData = {
                 date: attendanceDate,
@@ -304,49 +299,56 @@ export default function AttendancePage() {
             await setDoc(attendanceRef, attendanceData);
 
             // 2. Save to Realtime Database (for live/current data)
-            const { realtimeDb } = await import('@/lib/firebase/config');
-            const { ref, set } = await import('firebase/database');
-
             const rtdbPath = `attendance/${attendanceDate}/${selectedBranch}/${selectedYear}/${selectedSection}`;
             const rtdbRef = ref(realtimeDb, rtdbPath);
 
-            await set(rtdbRef, {
+            await setDb(rtdbRef, {
                 ...attendanceData,
                 timestamp: Date.now(), // Use numeric timestamp for RTDB
                 lastModified: isEditMode ? Date.now() : null
             });
 
-            console.log('Saved to both Firestore and Realtime Database');
-
             // Create Log Entry (only for new submissions, not edits)
             if (!isEditMode) {
                 const logMessage = `${selectedBranch} ${selectedYear === 1 ? '1st' : selectedYear === 2 ? '2nd' : selectedYear === 3 ? '3rd' : '4th'} Year Taken by ${currentUser.name}`;
-                await addDoc(collection(db, 'logs'), {
+                addDoc(collection(db, 'logs'), {
                     message: logMessage,
                     type: 'attendance',
                     branch: selectedBranch,
                     year: selectedYear,
                     timestamp: serverTimestamp(),
                     facultyName: currentUser.name
-                });
+                }).catch(err => console.error("Log error:", err));
             }
 
-            alert(isEditMode ? 'Attendance Updated Successfully!' : 'Attendance Submitted Successfully!');
+            // --- OPTIMISTIC UI: Update the local list immediately ---
+            const optimisticSubmission = {
+                id: docId,
+                ...attendanceData,
+                timestamp: { toDate: () => new Date() }, // Mock Firestore timestamp for UI
+                isOptimistic: true
+            };
 
-            // Reset edit mode and reload recent submissions
+            setRecentSubmissions(prev => {
+                const filtered = prev.filter(s => s.id !== docId);
+                return [optimisticSubmission, ...filtered].slice(0, 20);
+            });
+            setShowRecentSubmissions(true);
+            // -------------------------------------------------------
+
+            // Reset edit mode
             if (isEditMode) {
                 cancelEdit();
             }
 
-            // Wait a bit for Firestore to update, then reload and show recent submissions
-            setTimeout(async () => {
-                await loadRecentSubmissions();
-                setShowRecentSubmissions(true);
-            }, 500);
+            // Sync to get server timestamps properly
+            loadRecentSubmissions();
 
         } catch (error) {
             console.error('Error submitting attendance:', error);
-            alert('Failed to submit attendance.');
+            // Rollback optimistic update on error
+            loadRecentSubmissions();
+            alert('Failed to submit attendance. Please try again.');
         } finally {
             setIsSubmitting(false);
         }
@@ -504,7 +506,13 @@ export default function AttendancePage() {
                         <h3 className="font-semibold text-gray-800 dark:text-gray-200">Recent Submissions (Last 24 Hours)</h3>
                     </div>
                     <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                        {recentSubmissions.length === 0 ? (
+                        {loadingRecent ? (
+                            <div className="p-4 space-y-4">
+                                <Skeleton className="h-20 rounded-xl" />
+                                <Skeleton className="h-20 rounded-xl" />
+                                <Skeleton className="h-20 rounded-xl" />
+                            </div>
+                        ) : recentSubmissions.length === 0 ? (
                             <div className="p-8 text-center text-gray-500">
                                 No recent submissions found.
                             </div>

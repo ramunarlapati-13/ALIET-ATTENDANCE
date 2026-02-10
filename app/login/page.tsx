@@ -139,7 +139,6 @@ export default function LoginPage() {
                     }
                 }
             } catch (err) {
-                console.error('Error looking up faculty:', err);
                 // Fallback 2: Local faculty.json on error (permission denied)
                 const localName = (facultyData as any)[empId];
                 if (localName) {
