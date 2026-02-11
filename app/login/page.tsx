@@ -407,7 +407,7 @@ export default function LoginPage() {
                                         onChange={(e) =>
                                             setStudentForm({ ...studentForm, registrationNumber: e.target.value.toUpperCase() })
                                         }
-                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900"
                                         placeholder="Enter your registration number"
                                     />
                                 </div>
@@ -445,7 +445,7 @@ export default function LoginPage() {
                                         onChange={(e) =>
                                             setStudentForm({ ...studentForm, password: e.target.value })
                                         }
-                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900"
                                         placeholder="Enter your password"
                                     />
                                 </div>
@@ -494,7 +494,7 @@ export default function LoginPage() {
                                         onChange={(e) =>
                                             setInstitutionalForm({ ...institutionalForm, email: e.target.value })
                                         }
-                                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all ${facultyName ? 'border-green-300 bg-green-50' : 'border-gray-300'}`}
+                                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-gray-900 ${facultyName ? 'border-green-300 bg-green-50' : 'border-gray-300'}`}
                                         placeholder="Enter your Staff ID"
                                     />
                                     {lookingUpFaculty && (
@@ -532,7 +532,7 @@ export default function LoginPage() {
                                         onChange={(e) =>
                                             setInstitutionalForm({ ...institutionalForm, password: e.target.value })
                                         }
-                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900"
                                         placeholder="Enter your password"
                                     />
                                 </div>
