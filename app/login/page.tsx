@@ -600,6 +600,15 @@ export default function LoginPage() {
                 {/* Footer */}
                 <div className="text-center mt-6 text-primary-100 text-sm">
                     <p>&copy; {new Date().getFullYear()} ALIET College. All rights reserved.</p>
+                    <a
+                        href="https://aliet.ac.in/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 mt-4 px-6 py-2 bg-white/10 backdrop-blur-sm border border-white/30 rounded-full text-white font-medium hover:bg-white hover:text-primary-600 hover:scale-105 transition-all shadow-lg group"
+                    >
+                        <span>College Website</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
+                    </a>
                 </div>
             </div>
 
