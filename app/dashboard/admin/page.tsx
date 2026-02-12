@@ -10,6 +10,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { Users, GraduationCap, Building2, LogOut, Search, Filter, Moon, Sun, UserPlus, Edit, X, Save, Trash2, AlertTriangle, Check, XCircle, Mail, LayoutDashboard, BarChart3 } from 'lucide-react';
 import SpotlightCursor from '@/components/ui/SpotlightCursor';
 import { TableSkeleton } from '@/components/ui/Skeleton';
+import studentData from '@/data/students.json';
 
 interface Student {
     uid: string;
@@ -64,6 +65,13 @@ function AdminDashboard() {
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState<Student | Faculty | null>(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
+
+    // Get total student count from students.json (reference data)
+    const totalStudentsFromJson = useMemo(() => {
+        const studentNames = studentData as Record<string, string>;
+        return Object.keys(studentNames).length;
+    }, []);
+
 
 
     useEffect(() => {
@@ -482,7 +490,8 @@ function AdminDashboard() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Students</p>
-                                    <p className="text-3xl font-bold text-primary-600">{students.length}</p>
+                                    <p className="text-3xl font-bold text-primary-600">{totalStudentsFromJson}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">({students.length} registered)</p>
                                 </div>
                                 <div className="p-3 bg-primary-100 rounded-full">
                                     <GraduationCap className="w-8 h-8 text-primary-600" />
@@ -520,11 +529,20 @@ function AdminDashboard() {
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Students by Branch</h2>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             {BRANCHES.map(branch => {
-                                const count = students.filter(s => s.branch === branch).length;
+                                // For EEE, show count from students.json (all 44 students are EEE)
+                                // For other branches, show registered users count
+                                const count = branch === 'EEE'
+                                    ? totalStudentsFromJson
+                                    : students.filter(s => s.branch === branch).length;
+                                const registeredCount = students.filter(s => s.branch === branch).length;
+
                                 return (
                                     <div key={branch} className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                                         <p className="text-2xl font-bold text-primary-600">{count}</p>
                                         <p className="text-sm text-gray-600 dark:text-gray-400">{branch}</p>
+                                        {branch === 'EEE' && registeredCount > 0 && (
+                                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">({registeredCount} registered)</p>
+                                        )}
                                     </div>
                                 );
                             })}

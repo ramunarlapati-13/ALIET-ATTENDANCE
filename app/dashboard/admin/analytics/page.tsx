@@ -43,16 +43,34 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
+// Get total student count from students.json (currently contains EEE 3rd year students)
+const getTotalStudentsFromJson = (): number => {
+    const studentNames = studentData as Record<string, string>;
+    return Object.keys(studentNames).length;
+};
+
 export default function AdminAnalyticsPage() {
     const { currentUser, signOut } = useAuth();
     const router = useRouter();
 
     // Filters - Institution Level (Multiple Branches)
-    const BRANCHES = ['EEE', 'ECE', 'CSE', 'IT', 'MECH', 'CIVIL'];
-    const [selectedBranches, setSelectedBranches] = useState<string[]>(BRANCHES); // All branches selected by default
+    // Default branches for filtering (expandable for future branches)
+    const BRANCHES = useMemo(() => ['EEE', 'ECE', 'CSE', 'IT', 'MECH', 'CIVIL'], []);
+
+    // Get total student count from students.json (currently EEE 3rd year students)
+    const totalStudentsFromJson = useMemo(() => getTotalStudentsFromJson(), []);
+
+    const [selectedBranches, setSelectedBranches] = useState<string[]>([]); // Will be set after BRANCHES is computed
     const [showBranchDropdown, setShowBranchDropdown] = useState(false);
     const [selectedYear, setSelectedYear] = useState(0); // 0 = All Years
     const [selectedSection, setSelectedSection] = useState('ALL');
+
+    // Initialize selectedBranches after BRANCHES is computed
+    useEffect(() => {
+        if (BRANCHES.length > 0 && selectedBranches.length === 0) {
+            setSelectedBranches(BRANCHES);
+        }
+    }, [BRANCHES]);
 
     // Get today's date in YYYY-MM-DD format
     const getTodayString = () => {
