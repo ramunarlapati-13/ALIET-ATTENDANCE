@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { db } from '@/lib/firebase/config';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, onSnapshot } from 'firebase/firestore';
 import studentData from '@/data/students.json';
 import { detectBranchInfo } from '@/utils/branchDetector';
 import {
@@ -49,31 +49,30 @@ export default function AnalyticsPage() {
     const [dailyStats, setDailyStats] = useState<any[]>([]);
     const [overallPercent, setOverallPercent] = useState(0);
 
-    // 1. Fetch Attendance Data
+    // 1. Fetch Attendance Data (Real-time)
     useEffect(() => {
-        const fetchData = async () => {
-            setIsLoading(true);
-            try {
-                const q = query(
-                    collection(db, 'attendance'),
-                    where('branch', '==', selectedBranch),
-                    where('year', '==', selectedYear),
-                    where('section', '==', selectedSection),
-                    orderBy('date', 'asc') // Ensure chronological order
-                );
+        setIsLoading(true);
 
-                const snapshot = await getDocs(q);
-                const docs = snapshot.docs.map(doc => doc.data());
-                setAttendanceDocs(docs);
+        const q = query(
+            collection(db, 'attendance'),
+            where('branch', '==', selectedBranch),
+            where('year', '==', selectedYear),
+            where('section', '==', selectedSection)
+            // orderBy('date', 'asc') - Removed to avoid missing index issues
+        );
 
-            } catch (error) {
-                console.error("Error fetching analytics:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const docs = snapshot.docs.map(doc => doc.data());
+            // Client-side sorting
+            docs.sort((a, b) => a.date.localeCompare(b.date));
+            setAttendanceDocs(docs);
+            setIsLoading(false);
+        }, (error) => {
+            console.error("Error fetching analytics:", error);
+            setIsLoading(false);
+        });
 
-        fetchData();
+        return () => unsubscribe();
     }, [selectedBranch, selectedYear, selectedSection]);
 
     // 2. Process Data
@@ -93,7 +92,8 @@ export default function AnalyticsPage() {
                 date: record.date,
                 percent: Math.round((present / total) * 100),
                 present,
-                total
+                total,
+                topic: record.topic || 'No Topic'
             };
         });
         setDailyStats(daily);
@@ -259,7 +259,33 @@ export default function AnalyticsPage() {
                                     tickFormatter={(val) => val.split('-').slice(1).join('/')}
                                 />
                                 <YAxis domain={[0, 100]} />
-                                <Tooltip />
+                                <Tooltip
+                                    content={({ active, payload, label }) => {
+                                        if (active && payload && payload.length) {
+                                            const data = payload[0].payload;
+                                            return (
+                                                <div className="bg-white p-3 border border-gray-200 shadow-lg rounded-lg">
+                                                    <p className="font-bold text-gray-900">{label}</p>
+                                                    <p className="text-blue-600 font-semibold">
+                                                        Attendance: {data.percent}%
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        ({data.present}/{data.total} Students)
+                                                    </p>
+                                                    {data.topic && data.topic !== 'No Topic' && (
+                                                        <div className="mt-2 pt-2 border-t border-gray-100">
+                                                            <p className="text-xs font-semibold text-gray-700">Topic:</p>
+                                                            <p className="text-xs text-gray-600 italic max-w-[200px] break-words">
+                                                                {data.topic}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
+                                />
                                 <Legend />
                                 <Line
                                     type="monotone"

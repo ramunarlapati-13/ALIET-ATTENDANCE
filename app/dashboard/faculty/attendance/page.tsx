@@ -26,6 +26,7 @@ export default function AttendancePage() {
         }
     }, [currentUser]);
     const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
+    const [topic, setTopic] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Edit Mode State
@@ -62,6 +63,7 @@ export default function AttendancePage() {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     setAttendance(data.records || {});
+                    setTopic(data.topic || '');
                     setIsEditMode(true);
                     setEditingDocId(docId);
                     setEditingTimestamp(data.timestamp);
@@ -69,12 +71,14 @@ export default function AttendancePage() {
                     // No existing record for this combination
                     if (isEditMode) {
                         setAttendance({});
+                        setTopic('');
                         setIsEditMode(false);
                         setEditingDocId(null);
                         setEditingTimestamp(null);
                     } else {
                         // Just clear fresh state
                         setAttendance({});
+                        setTopic('');
                     }
                 }
             } catch (error) {
@@ -168,6 +172,7 @@ export default function AttendancePage() {
 
                 // Load attendance records
                 setAttendance(data.records || {});
+                setTopic(data.topic || '');
 
                 // Set edit mode
                 setIsEditMode(true);
@@ -188,6 +193,7 @@ export default function AttendancePage() {
         setEditingDocId(null);
         setEditingTimestamp(null);
         setAttendance({});
+        setTopic('');
     };
 
     // derived list of students based on filters
@@ -286,6 +292,7 @@ export default function AttendancePage() {
                 facultyId: facultyId,
                 facultyName: currentUser.name || 'Faculty',
                 records: finalRecords,
+                topic: topic,
                 stats: {
                     total: filteredStudents.length,
                     present: presentCount,
@@ -469,6 +476,20 @@ export default function AttendancePage() {
                     </select>
                 </div>
 
+                {/* Topic Input */}
+                <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Topic Discussed
+                    </label>
+                    <input
+                        type="text"
+                        value={topic}
+                        onChange={(e) => setTopic(e.target.value)}
+                        placeholder="Enter the topic discussed in this class..."
+                        className="input-field w-full"
+                    />
+                </div>
+
                 {/* Edit Mode Indicator */}
                 {isEditMode && (
                     <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
@@ -540,6 +561,11 @@ export default function AttendancePage() {
                                                         </span>
                                                     )}
                                                 </div>
+                                                {submission.topic && (
+                                                    <div className="text-sm text-gray-600 dark:text-gray-400 mb-2 italic">
+                                                        Topic: {submission.topic}
+                                                    </div>
+                                                )}
                                                 <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
                                                     <span>Present: {submission.stats?.present || 0}</span>
                                                     <span>Absent: {submission.stats?.absent || 0}</span>

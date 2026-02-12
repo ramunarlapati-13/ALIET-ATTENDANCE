@@ -21,6 +21,7 @@ interface Student {
     section?: string;
     mobileNumber?: string;
     password?: string;
+    role?: string;
 }
 
 interface Faculty {
@@ -718,6 +719,9 @@ function AdminDashboard() {
                                                         Department
                                                     </th>
                                                     <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+                                                        Role
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider">
                                                         Mobile
                                                     </th>
                                                     <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider">
@@ -728,7 +732,7 @@ function AdminDashboard() {
                                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                                 {filteredFaculty.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                                                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                                                             No faculty found
                                                         </td>
                                                     </tr>
@@ -745,6 +749,14 @@ function AdminDashboard() {
                                                             <td className="px-6 py-4 whitespace-nowrap">
                                                                 <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-secondary-100 text-secondary-800">
                                                                     {member.department || '-'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${member.role === 'hod'
+                                                                    ? 'bg-purple-100 text-purple-800'
+                                                                    : 'bg-blue-100 text-blue-800'
+                                                                    }`}>
+                                                                    {member.role ? member.role.toUpperCase() : 'FACULTY'}
                                                                 </span>
                                                             </td>
                                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -928,7 +940,7 @@ function AdminDashboard() {
                                 </div>
 
                                 {/* Student-specific Fields */}
-                                {'registrationNumber' in editingUser && (
+                                {editingUser.role === 'student' && (
                                     <>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -993,7 +1005,7 @@ function AdminDashboard() {
                                 )}
 
                                 {/* Faculty-specific Fields */}
-                                {!('registrationNumber' in editingUser) && 'employeeId' in editingUser && (
+                                {(editingUser.role === 'faculty' || editingUser.role === 'hod') && (
                                     <>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

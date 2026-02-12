@@ -60,7 +60,7 @@ export default function AnnouncementTicker() {
     }
 
     return (
-        <div className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm transition-colors">
             {/* Institutional Announcements */}
             {institutionalAnnouncements.length > 0 && (
                 <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white py-2 px-4">
