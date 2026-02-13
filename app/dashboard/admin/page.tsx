@@ -7,10 +7,12 @@ import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import { Users, GraduationCap, Building2, LogOut, Search, Filter, Moon, Sun, UserPlus, Edit, X, Save, Trash2, AlertTriangle, Check, XCircle, Mail, LayoutDashboard, BarChart3 } from 'lucide-react';
+import { Users, GraduationCap, Building2, LogOut, Search, Filter, Moon, Sun, UserPlus, Edit, X, Save, Trash2, AlertTriangle, Check, XCircle, Mail, LayoutDashboard, BarChart3, Megaphone } from 'lucide-react';
 import SpotlightCursor from '@/components/ui/SpotlightCursor';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { Component as PencilLoader } from '@/components/ui/loader-1';
+import AnnouncementTicker from '@/components/announcements/AnnouncementTicker';
+import AnnouncementManager from '@/components/announcements/AnnouncementManager';
 import studentData from '@/data/students.json';
 
 interface Student {
@@ -50,7 +52,7 @@ function AdminDashboard() {
     const [faculty, setFaculty] = useState<Faculty[]>([]);
     const [pendingFaculty, setPendingFaculty] = useState<Faculty[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'students' | 'faculty' | 'pending'>('students');
+    const [activeTab, setActiveTab] = useState<'students' | 'faculty' | 'pending' | 'announcements'>('students');
     const [searchTerm, setSearchTerm] = useState('');
     const [filterBranch, setFilterBranch] = useState('all');
     const [filterYear, setFilterYear] = useState('all');
@@ -428,16 +430,11 @@ function AdminDashboard() {
 
     return (
         <ProtectedRoute allowedRoles={['admin']}>
-            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 relative">
-                <SpotlightCursor
-                    config={{
-                        color: darkMode ? '#ffffff' : '#000000',
-                        brightness: darkMode ? 0.1 : 0.05,
-                        radius: 300
-                    }}
-                />
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
+                <SpotlightCursor />
+                <AnnouncementTicker />
                 {/* Header */}
-                <div className="bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 sticky top-0 z-10">
+                <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40 backdrop-blur-sm bg-white/80 dark:bg-gray-900/80">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between py-4">
                             <div className="flex items-center gap-6">
@@ -493,7 +490,7 @@ function AdminDashboard() {
                             </div>
                         </div>
                     </div>
-                </div>
+                </header>
 
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Stats Cards */}
@@ -667,17 +664,28 @@ function AdminDashboard() {
 
                                     <button
                                         onClick={() => setActiveTab('pending')}
-                                        className={`px-4 py-2 font-medium rounded-lg transition-colors ${activeTab === 'pending'
-                                            ? 'bg-amber-500 text-white'
-                                            : 'text-gray-600 hover:bg-gray-100'
-                                            } relative`}
+                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${activeTab === 'pending'
+                                            ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/30'
+                                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                                            }`}
                                     >
+                                        <AlertTriangle className="w-4 h-4" />
                                         Pending Approvals
                                         {pendingFaculty.length > 0 && (
-                                            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] text-white ring-2 ring-white">
+                                            <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">
                                                 {pendingFaculty.length}
                                             </span>
                                         )}
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('announcements')}
+                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${activeTab === 'announcements'
+                                            ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/30'
+                                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                                            }`}
+                                    >
+                                        <Megaphone className="w-4 h-4" />
+                                        Announcements
                                     </button>
                                 </div>
 
@@ -976,6 +984,10 @@ function AdminDashboard() {
                                         </table>
                                     ) : null}
                                 </div>
+                            )}
+
+                            {activeTab === 'announcements' && (
+                                <AnnouncementManager />
                             )}
                         </div>
                     </div>

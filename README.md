@@ -1,4 +1,5 @@
 # 🎓 ALIETAKE - Advanced College Management System
+### Built by [@ramunarlapati-13](https://github.com/ramunarlapati-13)
 
 A state-of-the-art, high-performance web application designed for comprehensive college management. Built with **Next.js 14**, **Firebase Hub**, and **Tailwind CSS**, it provides seamless attendance tracking, academic monitoring, and administrative control with a focus on premium aesthetics and institutional efficiency.
 
@@ -63,6 +64,10 @@ A custom, branded animation used throughout the application to signify loading s
 - **`GlobalPencilLoader.tsx`**: A full-screen overlay integrated into the root layout with **Backdrop Blur** and tracking-transition effects.
 - **`LoadingBar.tsx`**: A top-mounted progress bar for route transitions.
 
+### 📢 Announcement System
+- **`AnnouncementTicker.tsx`**: A smooth-scrolling, role-aware horizontal news ticker that pauses on hover.
+- **`AnnouncementManager.tsx`**: Comprehensive admin interface for creating, editing, and targeting campus updates.
+
 ### 🌓 Theme Engine
 - **`ThemeToggleFloating.tsx`**: A sleek icon-based switcher for Dark/Light modes.
 - **Custom Utility Styles**: Integrated dark mode support for all charts, tables, and dashboards.
@@ -86,6 +91,10 @@ A custom, branded animation used throughout the application to signify loading s
 - **Year-Wise Breakdown**: Detailed visibility of students across 1st, 2nd, 3rd, and 4th Year.
 - **Master Registry Check**: Cross-references Firestore data with `students.json` to identify un-registered students.
 
+### 📣 Campus Communication Hub
+- **Targeted Banners**: Post announcements specifically for **Students**, **Faculty**, or **HODs**.
+- **Live Lifecycle Management**: admins can instantly Toggle, Edit, or Delete active announcements with real-time propagation.
+
 ### 📈 Analytics & Reporting
 - **Multi-Format Export**: Generate professional reports in **PDF**, **Excel**, or **CSV**.
 - **Visual Trends**: Performance charting for branches and individual student attendance.
@@ -102,5 +111,5 @@ A custom, branded animation used throughout the application to signify loading s
 
 ---
 
-© 2026 **ALIET College**. Designed for Excellence.
+© 2026 **ALIET College**. Designed and Developed for Advanced Campus Management. All rights reserved.
 

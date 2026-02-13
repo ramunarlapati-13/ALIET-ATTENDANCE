@@ -13,6 +13,7 @@ import { collection, query, where, getDocs, limit, orderBy } from 'firebase/fire
 import { db } from '@/lib/firebase/config';
 import { useState, useEffect } from 'react';
 import ThemeToggleFloating from '@/components/ui/ThemeToggleFloating';
+import AnnouncementTicker from '@/components/announcements/AnnouncementTicker';
 
 export default function FacultyDashboard() {
     const { currentUser, loading, signOut } = useAuth();
@@ -35,10 +36,13 @@ export default function FacultyDashboard() {
     );
 
     return (
-        <ProtectedRoute allowedRoles={['faculty', 'hod']}>
+        <ProtectedRoute allowedRoles={['faculty', 'hod', 'admin']}>
             {currentUser && (
-                <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300 p-8">
-                    <div className="max-w-7xl mx-auto space-y-6">
+                <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
+                    <AnnouncementTicker />
+                    <ThemeToggleFloating />
+                    {/* Header/Navigation */}
+                    <div className="max-w-7xl mx-auto space-y-6 p-8">
                         {/* Header with Logout */}
                         <div className="flex items-center justify-between">
                             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">

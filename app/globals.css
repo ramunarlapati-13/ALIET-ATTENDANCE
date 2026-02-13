@@ -135,15 +135,29 @@
 
   /* Ticker animation */
   .ticker {
-    @apply overflow-hidden whitespace-nowrap;
+    @apply relative overflow-hidden whitespace-nowrap w-full flex items-center;
   }
 
   .ticker-content {
-    @apply inline-block animate-scroll;
+    @apply inline-block pl-[100%] animate-scroll;
   }
 
   .ticker-content:hover {
     animation-play-state: paused;
+  }
+
+  @keyframes scroll {
+    0% {
+      transform: translateX(0);
+    }
+
+    100% {
+      transform: translateX(-100%);
+    }
+  }
+
+  .animate-scroll {
+    animation: scroll 40s linear infinite;
   }
 
   /* Pencil Loader Animations */

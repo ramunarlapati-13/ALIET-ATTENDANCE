@@ -9,109 +9,88 @@ import { Megaphone } from 'lucide-react';
 
 export default function AnnouncementTicker() {
     const { currentUser } = useAuth();
-    const [institutionalAnnouncements, setInstitutionalAnnouncements] = useState<Announcement[]>([]);
-    const [departmentalAnnouncements, setDepartmentalAnnouncements] = useState<Announcement[]>([]);
+    const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
     useEffect(() => {
-        // Subscribe to institutional announcements
-        const institutionalQuery = query(
+        // Subscribe to all active announcements
+        const q = query(
             collection(db, 'announcements'),
-            where('tier', '==', 'institutional'),
-            where('isActive', '==', true),
-            orderBy('createdAt', 'desc')
+            where('isActive', '==', true)
         );
 
-        const unsubInstitutional = onSnapshot(institutionalQuery, (snapshot) => {
-            const announcements = snapshot.docs.map((doc) => ({
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const allAnnouncements = snapshot.docs.map((doc) => ({
                 id: doc.id,
                 ...doc.data(),
             })) as Announcement[];
-            setInstitutionalAnnouncements(announcements);
+
+            // Sort on client to avoid null timestamp issues with serverTimestamp
+            const sorted = allAnnouncements.sort((a, b) => {
+                const timeA = a.createdAt?.toMillis() || Date.now();
+                const timeB = b.createdAt?.toMillis() || Date.now();
+                return timeB - timeA;
+            });
+
+            // Filter by audience and department
+            const filtered = sorted.filter(ann => {
+                // Administrators see everything
+                if (currentUser?.role === 'admin') return true;
+
+                // If it's for everyone
+                if (!ann.audience || ann.audience === 'all') return true;
+
+                // Match by user role
+                if (currentUser?.role === ann.audience) {
+                    // If it's departmental, also check department
+                    if (ann.tier === 'departmental') {
+                        return currentUser?.department === ann.department;
+                    }
+                    return true;
+                }
+
+                return false;
+            });
+
+            setAnnouncements(filtered);
         });
 
-        // Subscribe to departmental announcements if user has a department
-        let unsubDepartmental = () => { };
-        if (currentUser?.department) {
-            const departmentalQuery = query(
-                collection(db, 'announcements'),
-                where('tier', '==', 'departmental'),
-                where('department', '==', currentUser.department),
-                where('isActive', '==', true),
-                orderBy('createdAt', 'desc')
-            );
-
-            unsubDepartmental = onSnapshot(departmentalQuery, (snapshot) => {
-                const announcements = snapshot.docs.map((doc) => ({
-                    id: doc.id,
-                    ...doc.data(),
-                })) as Announcement[];
-                setDepartmentalAnnouncements(announcements);
-            });
-        }
-
-        return () => {
-            unsubInstitutional();
-            unsubDepartmental();
-        };
+        return () => unsubscribe();
     }, [currentUser]);
 
-    if (institutionalAnnouncements.length === 0 && departmentalAnnouncements.length === 0) {
+    if (announcements.length === 0) {
         return null;
     }
 
     return (
-        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm transition-colors">
-            {/* Institutional Announcements */}
-            {institutionalAnnouncements.length > 0 && (
-                <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white py-2 px-4">
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                            <Megaphone className="w-4 h-4" />
-                            <span className="text-sm font-semibold">Institutional:</span>
-                        </div>
-                        <div className="ticker flex-1">
-                            <div className="ticker-content">
-                                {institutionalAnnouncements.map((announcement, index) => (
-                                    <span key={announcement.id} className="inline-block">
-                                        <span className="font-medium">{announcement.title}</span>
-                                        {' - '}
-                                        <span>{announcement.content}</span>
-                                        {index < institutionalAnnouncements.length - 1 && (
-                                            <span className="mx-8">•</span>
-                                        )}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+        <div className="bg-primary-600 dark:bg-primary-900 overflow-hidden border-b border-primary-500/30">
+            <div className="max-w-7xl mx-auto flex items-center h-10 px-4">
+                <div className="flex items-center gap-2 bg-primary-700 dark:bg-primary-800 px-3 py-1 rounded-l-md z-10 shadow-lg">
+                    <Megaphone className="w-4 h-4 text-white animate-bounce" />
+                    <span className="text-[10px] font-bold text-white uppercase tracking-tighter">Updates</span>
                 </div>
-            )}
 
-            {/* Departmental Announcements */}
-            {departmentalAnnouncements.length > 0 && (
-                <div className="bg-gradient-to-r from-secondary-600 to-secondary-700 text-white py-2 px-4">
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                            <Megaphone className="w-4 h-4" />
-                            <span className="text-sm font-semibold">Department:</span>
-                        </div>
-                        <div className="ticker flex-1">
-                            <div className="ticker-content">
-                                {departmentalAnnouncements.map((announcement, index) => (
-                                    <span key={announcement.id} className="inline-block">
-                                        <span className="font-medium">{announcement.title}</span>
-                                        {' - '}
-                                        <span>{announcement.content}</span>
-                                        {index < departmentalAnnouncements.length - 1 && (
-                                            <span className="mx-8">•</span>
-                                        )}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
+                <div className="ticker flex-1 relative h-full flex items-center">
+                    <div className="ticker-content py-2">
+                        {announcements.map((announcement, index) => (
+                            <span key={announcement.id} className="inline-flex items-center">
+                                <span className="text-sm font-bold text-white uppercase mx-2 px-1.5 py-0.5 bg-white/10 rounded">
+                                    {announcement.tier === 'departmental' ? announcement.department : 'Institutional'}
+                                </span>
+                                <span className="text-sm font-medium text-primary-50 truncate">
+                                    {announcement.title}:
+                                </span>
+                                <span className="text-sm text-white/90 ml-1">
+                                    {announcement.content}
+                                </span>
+                                {index < announcements.length - 1 && (
+                                    <span className="mx-12 text-white/30 font-light">||</span>
+                                )}
+                            </span>
+                        ))}
+                        {/* Duplicate content for seamless loop if needed, but the Pl-[100%] handles it for short lists */}
                     </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 }

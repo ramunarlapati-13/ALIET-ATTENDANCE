@@ -103,7 +103,8 @@ export interface FeeRecord {
 }
 
 // Announcement tier
-export type AnnouncementTier = 'institutional' | 'departmental';
+export type AnnouncementTier = 'institutional' | 'departmental' | 'general';
+export type AnnouncementAudience = 'all' | 'student' | 'faculty' | 'hod';
 
 // Announcement
 export interface Announcement {
@@ -117,6 +118,7 @@ export interface Announcement {
     createdAt: Timestamp;
     expiresAt?: Timestamp;
     isActive: boolean;
+    audience?: AnnouncementAudience;
 }
 
 // Department
