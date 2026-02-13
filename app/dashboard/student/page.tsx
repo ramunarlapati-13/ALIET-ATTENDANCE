@@ -26,6 +26,75 @@ export default function StudentDashboard() {
     const [attendanceStats, setAttendanceStats] = useState({ percent: 0, classes: 0, present: 0 });
 
     const [recentAttendance, setRecentAttendance] = useState<any[]>([]);
+    const [subjectCount, setSubjectCount] = useState(0);
+    const [averageMarks, setAverageMarks] = useState(0);
+
+    // Fetch Subject Count & Marks
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!currentUser?.branch || !currentUser?.year || !currentUser?.uid) return;
+            const classConfigId = `${currentUser.branch}_${currentUser.year}`;
+
+            try {
+                // Dynamic imports
+                const { doc, getDoc, collection, query, where, getDocs } = await import('firebase/firestore');
+
+                // 1. Fetch Subject Count
+                const configRef = doc(db, 'class_subjects', classConfigId);
+                const configSnap = await getDoc(configRef);
+                let subjectsLength = 0;
+
+                if (configSnap.exists() && configSnap.data().subjects) {
+                    subjectsLength = configSnap.data().subjects.length;
+                    setSubjectCount(subjectsLength);
+                } else {
+                    setSubjectCount(0);
+                }
+
+                // 2. Fetch Marks for Average Calculation
+                const marksRef = collection(db, 'marks_class_consolidated');
+                const marksQuery = query(
+                    marksRef,
+                    where('branch', '==', currentUser.branch),
+                    where('year', '==', currentUser.year)
+                );
+
+                const marksSnap = await getDocs(marksQuery);
+                let totalGained = 0;
+                let totalMax = 0;
+
+                marksSnap.forEach(doc => {
+                    const data = doc.data();
+
+                    // Marks are stored by Registration Number
+                    const studentKey = currentUser.registrationNumber || currentUser.uid;
+
+                    if (data.marks && data.marks[studentKey]) {
+                        const studentMarks = data.marks[studentKey];
+
+                        // Iterate over subjects
+                        Object.values(studentMarks).forEach((markEntry: any) => {
+                            // Only count if total is present (meaning marks were entered)
+                            if (markEntry && typeof markEntry.total === 'number') {
+                                totalGained += markEntry.total;
+                                totalMax += 20;
+                            }
+                        });
+                    }
+                });
+
+                if (totalMax > 0) {
+                    setAverageMarks(Math.round((totalGained / totalMax) * 100));
+                } else {
+                    setAverageMarks(0);
+                }
+
+            } catch (error) {
+                console.error("Error fetching academic data:", error);
+            }
+        };
+        fetchData();
+    }, [currentUser]);
 
     useEffect(() => {
         if (!currentUser?.branch || !currentUser?.registrationNumber) return;
@@ -166,7 +235,7 @@ export default function StudentDashboard() {
                                 <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                                     <BarChart3 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                                 </div>
-                                <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">78%</span>
+                                <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{averageMarks}%</span>
                             </div>
                             <h3 className="text-gray-600 dark:text-gray-400 text-sm font-medium">Academic Performance</h3>
                             <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">Average marks</p>
@@ -183,12 +252,15 @@ export default function StudentDashboard() {
                             <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">Due this semester</p>
                         </div>
 
-                        <div className="card-hover">
+                        <div
+                            className="card-hover cursor-pointer"
+                            onClick={() => router.push('/dashboard/student/marks')}
+                        >
                             <div className="flex items-center justify-between mb-4">
                                 <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
                                     <LayoutDashboard className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                                 </div>
-                                <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">6</span>
+                                <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">{subjectCount}</span>
                             </div>
                             <h3 className="text-gray-600 dark:text-gray-400 text-sm font-medium">Active Subjects</h3>
                             <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">This semester</p>

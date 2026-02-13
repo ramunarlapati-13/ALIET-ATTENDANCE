@@ -9,7 +9,8 @@ import {
     User,
     Settings,
     Shield,
-    Wallet
+    Wallet,
+    LayoutList
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -44,6 +45,7 @@ export default function NavigationDock() {
             return [
                 { icon: LayoutDashboard, label: 'Home', path: '/dashboard/student' },
                 { icon: Wallet, label: 'Fees', path: '/dashboard/student/fees' },
+                { icon: LayoutList, label: 'Marks', path: '/dashboard/student/marks' },
                 { icon: User, label: 'Profile', path: '/dashboard/student/profile' },
             ];
         }
