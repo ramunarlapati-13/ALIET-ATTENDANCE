@@ -196,28 +196,109 @@ export default function AttendancePage() {
         setTopic('');
     };
 
-    // derived list of students based on filters
-    const filteredStudents = useMemo(() => {
-        const allStudents = Object.entries(studentData as Record<string, string>);
+    const [fetchedStudents, setFetchedStudents] = useState<any[]>([]);
+    const [loadingStudents, setLoadingStudents] = useState(false);
 
-        const mapped = allStudents
+    // Fetch students from Firestore based on selection
+    useEffect(() => {
+        const fetchStudents = async () => {
+            setLoadingStudents(true);
+            try {
+                // Path: admin/students/{branch}/{year}/{section}
+                // Note: Year is a document, Section is a subcollection
+                const studentsRef = collection(db, 'admin', 'students', selectedBranch, String(selectedYear), selectedSection);
+                const snapshot = await getDocs(studentsRef);
+
+                const fromDb = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+
+                setFetchedStudents(fromDb);
+            } catch (error) {
+                console.error("Error fetching students:", error);
+            } finally {
+                setLoadingStudents(false);
+            }
+        };
+
+        if (selectedBranch && selectedYear && selectedSection) {
+            fetchStudents();
+        }
+    }, [selectedBranch, selectedYear, selectedSection]);
+
+    // derived list of students based on filters (Merged Local + DB)
+    const filteredStudents = useMemo(() => {
+        // 1. Process Local JSON Data
+        const allLocalStudents = Object.entries(studentData as Record<string, string>)
             .map(([regNo, name]) => {
                 const { data: info, calculatedYear, entryType } = detectBranchInfo(regNo);
                 return {
                     regNo,
+                    uid: regNo, // Placeholder UID for local data
                     name,
-                    branch: info?.branch,
-                    year: calculatedYear,
-                    entryType
+                    branch: info?.branch || 'Unknown',
+                    year: calculatedYear || 0,
+                    entryType,
+                    section: 'A', // Default assumption for local data if not specified, but logic below filters it
+                    isLocal: true
                 };
             })
             .filter(student =>
                 student.branch === selectedBranch &&
                 student.year === selectedYear
-            )
+                // Local data doesn't have section info usually, so we might show them in all sections 
+                // OR we strictly assume Section 'A' if not defined? 
+                // For now, let's include them to be safe, or maybe user wants them partitioned.
+                // If we assume local JSON is "all sections", we can't easily filter by section without a map.
+                // Let's assume they appear in 'A' by default or we shouldn't filter strict on section for local unless we know.
+                // Given the user expectation: "Not getting ALL students", likely they want to see them.
+            );
+
+        // 2. Process Fetched DB Students
+        const dbStudents = fetchedStudents.map(s => ({
+            regNo: s.registrationNumber || s.regNo || '',
+            uid: s.uid || s.id,
+            name: s.name || 'Unknown',
+            branch: s.branch,
+            year: s.year,
+            section: s.section,
+            entryType: s.entryType || (s.registrationNumber ? detectBranchInfo(s.registrationNumber).entryType : 'Regular'),
+            isLocal: false
+        }));
+
+        // 3. Merge Strategies
+        // We want DB students to take precedence (they might have updated names/details)
+        // We also want to ensure we don't duplicate by RegNo
+
+        const mergedMap = new Map();
+
+        // Add Local first
+        allLocalStudents.forEach(s => {
+            // Only add local students if we are viewing Section A (default assignment) 
+            // OR if we want them visible everywhere. 
+            // Better approach: If local student isn't in DB, show them.
+            // But we need to decide which section they belong to.
+            // IF the user is selecting Section A, show them. If B, maybe not?
+            // To be safe and show "all", we include them if selectedSection is 'A' (Standard)
+            // or if we decide local json implies a specific section.
+            // Let's stick to the previous behavior: The previous code filtered purely by branch/year.
+            // It didn't filter by Section because the previous code didn't have section info in JSON.
+            // So previously, ALL students of a branch/year appeared in ALL sections.
+            // We should PROBABLY keep that behavior for local data to avoid "missing" students when switching sections.
+            mergedMap.set(s.regNo, s);
+        });
+
+        // Overwrite/Add DB students
+        dbStudents.forEach(s => {
+            // DB students definitely belong to this section because we fetched from that path
+            mergedMap.set(s.regNo, s);
+        });
+
+        return Array.from(mergedMap.values())
             .sort((a, b) => a.regNo.localeCompare(b.regNo));
-        return mapped;
-    }, [selectedBranch, selectedYear]);
+
+    }, [selectedBranch, selectedYear, selectedSection, fetchedStudents]);
 
     const handleMark = (regNo: string, status: 'Present' | 'Absent') => {
         setAttendance(prev => ({

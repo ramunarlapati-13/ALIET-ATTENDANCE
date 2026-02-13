@@ -56,10 +56,10 @@ export default function RegisterFaculty() {
     // Access Control: Only specific emails allowed
     if (!currentUser || !ADMIN_EMAILS.includes(currentUser.email)) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50 text-center">
+            <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-950 text-center">
                 <ShieldAlert className="w-16 h-16 text-red-600 mb-4" />
-                <h1 className="text-2xl font-bold text-gray-800 mb-2">Access Denied</h1>
-                <p className="text-gray-600 mb-6">You do not have permission to view this page.</p>
+                <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Access Denied</h1>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">You do not have permission to view this page.</p>
                 <button
                     onClick={() => router.push('/login')}
                     className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition"
@@ -332,22 +332,22 @@ export default function RegisterFaculty() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-            <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-lg">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md w-full max-w-lg border border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                    <h1 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
                         <UserPlus className="w-6 h-6 text-blue-600" />
                         Admin: Register User
                     </h1>
                     <button
                         onClick={() => router.push('/dashboard/admin')}
-                        className="text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1"
+                        className="text-sm text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 flex items-center gap-1"
                     >
                         <LayoutDashboard className="w-4 h-4" /> Dashboard
                     </button>
                 </div>
 
-                <div className="mb-6 bg-blue-50 p-3 rounded text-sm text-blue-800 border border-blue-200">
+                <div className="mb-6 bg-blue-50 dark:bg-blue-900/20 p-3 rounded text-sm text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50">
                     Logged in as Admin: <strong>{currentUser?.email}</strong>
                 </div>
 
@@ -358,7 +358,7 @@ export default function RegisterFaculty() {
                         onClick={() => setShowBulkUpload(false)}
                         className={`flex-1 py-2 px-4 rounded font-medium transition-colors ${!showBulkUpload
                             ? 'bg-blue-600 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                             }`}
                     >
                         <UserPlus className="w-4 h-4 inline mr-2" />
@@ -369,7 +369,7 @@ export default function RegisterFaculty() {
                         onClick={() => setShowBulkUpload(true)}
                         className={`flex-1 py-2 px-4 rounded font-medium transition-colors ${showBulkUpload
                             ? 'bg-blue-600 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                             }`}
                     >
                         <Upload className="w-4 h-4 inline mr-2" />
@@ -380,11 +380,11 @@ export default function RegisterFaculty() {
                 {!showBulkUpload ? (
                     <form onSubmit={handleRegister} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
                             <input
                                 type="text"
                                 required
-                                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="input-field"
                                 placeholder="e.g. John Doe"
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -392,9 +392,9 @@ export default function RegisterFaculty() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">User Type</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">User Type</label>
                             <select
-                                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="input-field"
                                 value={formData.role}
                                 onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                             >
@@ -407,11 +407,11 @@ export default function RegisterFaculty() {
                         {formData.role === 'student' ? (
                             <>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Registration Number</label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Registration Number</label>
                                     <input
                                         type="text"
                                         required
-                                        className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
+                                        className="input-field uppercase"
                                         placeholder="e.g. 20HP1A0501"
                                         value={formData.registrationNumber}
                                         onChange={(e) => {
@@ -425,16 +425,16 @@ export default function RegisterFaculty() {
                                             }));
                                         }}
                                     />
-                                    <p className="text-xs text-gray-500 mt-1">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                         Generated Email: {((formData.registrationNumber || "example") + "@aliet.ac.in").toLowerCase()}
                                     </p>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Year</label>
                                         <select
-                                            className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            className="input-field"
                                             value={formData.year}
                                             onChange={(e) => setFormData({ ...formData, year: e.target.value })}
                                         >
@@ -444,9 +444,9 @@ export default function RegisterFaculty() {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Section</label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Section</label>
                                         <select
-                                            className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            className="input-field"
                                             value={formData.section}
                                             onChange={(e) => setFormData({ ...formData, section: e.target.value })}
                                         >
@@ -459,11 +459,11 @@ export default function RegisterFaculty() {
                             </>
                         ) : (
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Faculty ID</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Faculty ID</label>
                                 <input
                                     type="text"
                                     required
-                                    className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
+                                    className="input-field uppercase"
                                     placeholder="e.g. FAC-CSE-001"
                                     value={formData.facultyId}
                                     onChange={(e) => {
@@ -476,16 +476,16 @@ export default function RegisterFaculty() {
                                         }));
                                     }}
                                 />
-                                <p className="text-xs text-gray-500 mt-1">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                     Generated Email: {((formData.facultyId || "example") + "@aliet.ac.in").toLowerCase()}
                                 </p>
                             </div>
                         )}
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Branch/Department</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch/Department</label>
                             <select
-                                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="input-field"
                                 value={formData.department}
                                 onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                             >
@@ -496,10 +496,10 @@ export default function RegisterFaculty() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
                             <input
                                 type="text"
-                                className="w-full border p-2 rounded bg-gray-50 text-gray-600"
+                                className="input-field opacity-80"
                                 value={formData.password}
                                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                 placeholder="Leave empty for default: password123"
@@ -543,10 +543,10 @@ export default function RegisterFaculty() {
                         </div>
 
                         {/* File Format Guide */}
-                        <div className="bg-blue-50 border border-blue-200 rounded p-4 text-sm">
-                            <h3 className="font-semibold text-blue-900 mb-2">📋 File Format Guide:</h3>
-                            <p className="text-blue-800 mb-2"><strong>For Students:</strong> name, registrationNumber, year, section, department</p>
-                            <p className="text-blue-800 mb-3"><strong>For Faculty:</strong> name, facultyId, department, role (faculty/hod)</p>
+                        <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/50 rounded p-4 text-sm">
+                            <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">📋 File Format Guide:</h3>
+                            <p className="text-blue-800 dark:text-blue-400 mb-2"><strong>For Students:</strong> name, registrationNumber, year, section, department</p>
+                            <p className="text-blue-800 dark:text-blue-400 mb-3"><strong>For Faculty:</strong> name, facultyId, department, role (faculty/hod)</p>
                             <div className="flex gap-2 mt-2">
                                 <a
                                     href="/sample-students.csv"
@@ -567,37 +567,37 @@ export default function RegisterFaculty() {
 
                         {/* Parsed Data Preview */}
                         {parsedData.length > 0 && (
-                            <div className="border rounded-lg overflow-hidden">
-                                <div className="bg-gray-100 px-4 py-2 border-b">
-                                    <h3 className="font-semibold text-gray-800">
+                            <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                                <div className="bg-gray-100 dark:bg-gray-950 px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+                                    <h3 className="font-semibold text-gray-800 dark:text-gray-200">
                                         Parsed Data ({parsedData.length} records)
                                     </h3>
                                 </div>
                                 <div className="max-h-64 overflow-y-auto">
                                     <table className="w-full text-sm">
-                                        <thead className="bg-gray-50 sticky top-0">
+                                        <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0">
                                             <tr>
-                                                <th className="px-3 py-2 text-left">Name</th>
-                                                <th className="px-3 py-2 text-left">Role</th>
-                                                <th className="px-3 py-2 text-left">ID</th>
-                                                <th className="px-3 py-2 text-left">Dept</th>
+                                                <th className="px-3 py-2 text-left text-gray-700 dark:text-gray-300">Name</th>
+                                                <th className="px-3 py-2 text-left text-gray-700 dark:text-gray-300">Role</th>
+                                                <th className="px-3 py-2 text-left text-gray-700 dark:text-gray-300">ID</th>
+                                                <th className="px-3 py-2 text-left text-gray-700 dark:text-gray-300">Dept</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {parsedData.map((item, idx) => (
-                                                <tr key={idx} className="border-t hover:bg-gray-50">
-                                                    <td className="px-3 py-2">{item.name}</td>
-                                                    <td className="px-3 py-2">{item.role}</td>
-                                                    <td className="px-3 py-2 text-xs">
+                                                <tr key={idx} className="border-t border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                                    <td className="px-3 py-2 text-gray-800 dark:text-gray-200">{item.name}</td>
+                                                    <td className="px-3 py-2 text-gray-800 dark:text-gray-200">{item.role}</td>
+                                                    <td className="px-3 py-2 text-xs text-gray-600 dark:text-gray-400">
                                                         {item.role === 'student' ? item.registrationNumber : item.facultyId}
                                                     </td>
-                                                    <td className="px-3 py-2">{item.department}</td>
+                                                    <td className="px-3 py-2 text-gray-800 dark:text-gray-200">{item.department}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
                                 </div>
-                                <div className="bg-gray-50 px-4 py-3 border-t">
+                                <div className="bg-gray-50 dark:bg-gray-900/50 px-4 py-3 border-t border-gray-200 dark:border-gray-700">
                                     <button
                                         onClick={handleBulkUpload}
                                         disabled={isLoading}
@@ -630,14 +630,14 @@ export default function RegisterFaculty() {
                         {(bulkResults.success.length > 0 || bulkResults.failed.length > 0) && (
                             <div className="space-y-3">
                                 {bulkResults.success.length > 0 && (
-                                    <div className="border border-green-200 rounded-lg overflow-hidden">
-                                        <div className="bg-green-50 px-4 py-2 border-b border-green-200 flex items-center gap-2">
+                                    <div className="border border-green-200 dark:border-green-800/50 rounded-lg overflow-hidden">
+                                        <div className="bg-green-50 dark:bg-green-900/20 px-4 py-2 border-b border-green-200 dark:border-green-800/50 flex items-center gap-2">
                                             <CheckCircle className="w-4 h-4 text-green-600" />
-                                            <h3 className="font-semibold text-green-800">
+                                            <h3 className="font-semibold text-green-800 dark:text-green-300">
                                                 Successfully Created ({bulkResults.success.length})
                                             </h3>
                                         </div>
-                                        <div className="max-h-32 overflow-y-auto p-3 text-sm text-green-800">
+                                        <div className="max-h-32 overflow-y-auto p-3 text-sm text-green-800 dark:text-green-400 bg-white dark:bg-gray-800/50">
                                             {bulkResults.success.map((item, idx) => (
                                                 <div key={idx} className="py-1">✓ {item.name}</div>
                                             ))}
@@ -645,14 +645,14 @@ export default function RegisterFaculty() {
                                     </div>
                                 )}
                                 {bulkResults.failed.length > 0 && (
-                                    <div className="border border-red-200 rounded-lg overflow-hidden">
-                                        <div className="bg-red-50 px-4 py-2 border-b border-red-200 flex items-center gap-2">
+                                    <div className="border border-red-200 dark:border-red-800/50 rounded-lg overflow-hidden">
+                                        <div className="bg-red-50 dark:bg-red-900/20 px-4 py-2 border-b border-red-200 dark:border-red-800/50 flex items-center gap-2">
                                             <XCircle className="w-4 h-4 text-red-600" />
-                                            <h3 className="font-semibold text-red-800">
+                                            <h3 className="font-semibold text-red-800 dark:text-red-300">
                                                 Failed ({bulkResults.failed.length})
                                             </h3>
                                         </div>
-                                        <div className="max-h-32 overflow-y-auto p-3 text-sm text-red-800">
+                                        <div className="max-h-32 overflow-y-auto p-3 text-sm text-red-800 dark:text-red-400 bg-white dark:bg-gray-800/50">
                                             {bulkResults.failed.map((item, idx) => (
                                                 <div key={idx} className="py-1">
                                                     ✗ {item.name}: {item.reason}
@@ -667,7 +667,9 @@ export default function RegisterFaculty() {
                 )}
 
                 {status.type && (
-                    <div className={`mt-6 p-4 rounded text-sm whitespace-pre-line ${status.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
+                    <div className={`mt-6 p-4 rounded text-sm border whitespace-pre-line ${status.type === 'success'
+                        ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800/50'
+                        : 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800/50'
                         }`}>
                         {status.message}
                     </div>
@@ -682,4 +684,3 @@ export default function RegisterFaculty() {
         </div>
     );
 }
-password: 'password'

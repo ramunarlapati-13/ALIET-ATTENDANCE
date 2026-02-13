@@ -13,6 +13,8 @@ import { TableSkeleton } from '@/components/ui/Skeleton';
 import { Component as PencilLoader } from '@/components/ui/loader-1';
 import AnnouncementTicker from '@/components/announcements/AnnouncementTicker';
 import AnnouncementManager from '@/components/announcements/AnnouncementManager';
+import { detectBranchInfo } from '@/utils/branchDetector';
+
 import studentData from '@/data/students.json';
 
 interface Student {
@@ -42,13 +44,64 @@ interface Faculty {
 
 const BRANCHES = ['CIVIL', 'EEE', 'MECH', 'ECE', 'CSE', 'IT', 'CSM', 'CSD'];
 
-function AdminDashboard() {
+export default function AdminDashboard() {
     const { currentUser, signOut } = useAuth();
     const router = useRouter();
     // Using a map to manage students by branch for easier updates
     const [studentsMap, setStudentsMap] = useState<Record<string, Student[]>>({});
-    const students = useMemo(() => Object.values(studentsMap).flat(), [studentsMap]);
 
+    // Pre-process JSON students into a map by branch
+    const jsonStudentsMap = useMemo(() => {
+        const map: Record<string, Student[]> = {};
+        BRANCHES.forEach(b => map[b] = []);
+
+        Object.entries(studentData as Record<string, string>).forEach(([regNo, name]) => {
+            const { data: info, calculatedYear } = detectBranchInfo(regNo);
+            const branch = info?.branch;
+            if (branch && map[branch]) {
+                map[branch].push({
+                    uid: regNo, // Use RegNo as UID for local
+                    name,
+                    registrationNumber: regNo,
+                    branch,
+                    year: calculatedYear || 1, // Default to 1 if calc fails
+                    email: 'Not Registered',
+                    role: 'student'
+                });
+            } else if (branch && !map[branch] && BRANCHES.includes(branch)) {
+                map[branch] = [{
+                    uid: regNo,
+                    name,
+                    registrationNumber: regNo,
+                    branch,
+                    year: calculatedYear || 1,
+                    email: 'Not Registered',
+                    role: 'student'
+                }];
+            }
+        });
+        return map;
+    }, []);
+
+    // Merge Firestore students with JSON students
+    const students = useMemo(() => {
+        const firestoreStudents = Object.values(studentsMap).flat();
+        const jsonStudents = Object.values(jsonStudentsMap).flat();
+
+        // Merge: Firestore overrides JSON
+        const mergedMap = new Map();
+
+        // Add JSON first
+        jsonStudents.forEach(s => mergedMap.set(s.registrationNumber, s));
+
+        // Add/Overwrite with Firestore
+        firestoreStudents.forEach(s => {
+            if (s.registrationNumber) mergedMap.set(s.registrationNumber, s);
+            else mergedMap.set(s.uid, s);
+        });
+
+        return Array.from(mergedMap.values());
+    }, [studentsMap, jsonStudentsMap]);
     const [faculty, setFaculty] = useState<Faculty[]>([]);
     const [pendingFaculty, setPendingFaculty] = useState<Faculty[]>([]);
     const [loading, setLoading] = useState(true);
@@ -499,8 +552,8 @@ function AdminDashboard() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Students</p>
-                                    <p className="text-3xl font-bold text-primary-600">{totalStudentsFromJson}</p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">({students.length} registered)</p>
+                                    <p className="text-3xl font-bold text-primary-600">{students.length}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">({Object.values(studentsMap).flat().length} registered)</p>
                                 </div>
                                 <div className="p-3 bg-primary-100 rounded-full">
                                     <GraduationCap className="w-8 h-8 text-primary-600" />
@@ -538,12 +591,10 @@ function AdminDashboard() {
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Students by Branch</h2>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             {BRANCHES.map(branch => {
-                                // For EEE, show count from students.json (all 44 students are EEE)
-                                // For other branches, show registered users count
-                                const count = branch === 'EEE'
-                                    ? totalStudentsFromJson
-                                    : students.filter(s => s.branch === branch).length;
-                                const registeredCount = students.filter(s => s.branch === branch).length;
+                                // Total students (JSON + Registered)
+                                const count = students.filter(s => s.branch === branch).length;
+                                // Registered specifically
+                                const registeredCount = (studentsMap[branch] || []).length;
 
                                 return (
                                     <button
@@ -556,7 +607,7 @@ function AdminDashboard() {
                                     >
                                         <p className={`text-2xl font-bold ${selectedBranchDetail === branch ? 'text-white' : 'text-primary-600'}`}>{count}</p>
                                         <p className={`text-sm ${selectedBranchDetail === branch ? 'text-primary-50' : 'text-gray-600 dark:text-gray-400'}`}>{branch}</p>
-                                        {branch === 'EEE' && registeredCount > 0 && (
+                                        {registeredCount > 0 && (
                                             <p className={`text-xs mt-1 ${selectedBranchDetail === branch ? 'text-primary-100' : 'text-gray-500 dark:text-gray-500'}`}>({registeredCount} registered)</p>
                                         )}
                                     </button>
@@ -580,26 +631,10 @@ function AdminDashboard() {
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                     {[1, 2, 3, 4].map(year => {
-                                        // Base list from Firestore (registered users)
-                                        let yearStudents = (studentsMap[selectedBranchDetail] || []).filter(s => s.year === year);
-
-                                        // Special case: EEE 3rd Year should show all 44 from JSON
-                                        if (selectedBranchDetail === 'EEE' && year === 3) {
-                                            const jsonStudents = studentData as Record<string, string>;
-                                            const combinedList: Student[] = Object.entries(jsonStudents).map(([regNo, name]) => {
-                                                // Check if this student is already in Firestore
-                                                const registered = yearStudents.find(s => s.registrationNumber === regNo);
-                                                return registered || {
-                                                    uid: regNo, // Use RegNo as temporary UID
-                                                    name,
-                                                    registrationNumber: regNo,
-                                                    branch: 'EEE',
-                                                    year: 3,
-                                                    email: 'Not Registered'
-                                                };
-                                            });
-                                            yearStudents = combinedList;
-                                        }
+                                        // Filter students for this branch and year from the merged list
+                                        const yearStudents = students.filter(s =>
+                                            s.branch === selectedBranchDetail && s.year === year
+                                        );
 
                                         return (
                                             <div key={year} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm">
@@ -1255,4 +1290,4 @@ function AdminDashboard() {
     );
 }
 
-export default AdminDashboard;
+

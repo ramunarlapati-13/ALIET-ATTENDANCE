@@ -7,7 +7,7 @@ import { Save, LayoutList, Plus, Trash2, Edit2, AlertCircle, CheckCircle, Loader
 
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase/config';
-import { doc, setDoc, collection, addDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { doc, setDoc, collection, addDoc, serverTimestamp, getDoc, getDocs } from 'firebase/firestore';
 
 // Export Libraries
 import jsPDF from 'jspdf';
@@ -58,28 +58,94 @@ export default function MarksEntryPage() {
         }
     }, [currentUser]);
 
-    // Derived Student List
-    const filteredStudents = useMemo(() => {
-        const allStudents = Object.entries(studentData as Record<string, string>);
+    const [fetchedStudents, setFetchedStudents] = useState<any[]>([]);
+    const [loadingStudents, setLoadingStudents] = useState(false);
 
-        const mapped = allStudents
+    // Fetch students from Firestore based on selection
+    useEffect(() => {
+        const fetchStudents = async () => {
+            setLoadingStudents(true);
+            try {
+                // Path: admin/students/{branch}/{year}/{section}
+                const studentsRef = collection(db, 'admin', 'students', selectedBranch, String(selectedYear), selectedSection);
+                console.log(`🔍 Fetching students from: admin/students/${selectedBranch}/${selectedYear}/${selectedSection}`);
+                const snapshot = await getDocs(studentsRef);
+
+                const fromDb = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    console.log('📄 Student doc:', doc.id, data);
+                    return {
+                        id: doc.id,
+                        ...data
+                    };
+                });
+
+                console.log(`✅ Fetched ${fromDb.length} students from Firestore`);
+                setFetchedStudents(fromDb);
+            } catch (error) {
+                console.error("❌ Error fetching students:", error);
+            } finally {
+                setLoadingStudents(false);
+            }
+        };
+
+        if (selectedBranch && selectedYear && selectedSection) {
+            fetchStudents();
+        }
+    }, [selectedBranch, selectedYear, selectedSection]);
+
+    // Derived Student List (Merged Local + DB)
+    const filteredStudents = useMemo(() => {
+        // 1. Process Local JSON Data
+        const allLocalStudents = Object.entries(studentData as Record<string, string>)
             .map(([regNo, name]) => {
                 const { data: info, calculatedYear, entryType } = detectBranchInfo(regNo);
                 return {
                     regNo,
+                    uid: regNo,
                     name,
-                    branch: info?.branch,
-                    year: calculatedYear,
-                    entryType
+                    branch: info?.branch || 'Unknown',
+                    year: calculatedYear || 0,
+                    entryType,
+                    section: 'A', // Default assumption
+                    isLocal: true
                 };
             })
             .filter(student =>
                 student.branch === selectedBranch &&
                 student.year === selectedYear
-            )
+            );
+
+        // 2. Process Fetched DB Students
+        const dbStudents = fetchedStudents.map(s => ({
+            regNo: s.registrationNumber || s.regNo || '',
+            uid: s.uid || s.id,
+            name: s.name || 'Unknown',
+            branch: s.branch,
+            year: s.year,
+            section: s.section,
+            entryType: s.entryType || (s.registrationNumber ? detectBranchInfo(s.registrationNumber).entryType : 'Regular'),
+            isLocal: false
+        }));
+
+        // 3. Merge Strategies
+        const mergedMap = new Map();
+
+        // Add Local first
+        allLocalStudents.forEach(s => {
+            mergedMap.set(s.regNo, s);
+        });
+
+        // Overwrite/Add DB students
+        dbStudents.forEach(s => {
+            // DB students definitely belong to this section because we fetched from that path
+            mergedMap.set(s.regNo, s);
+        });
+
+        return Array.from(mergedMap.values())
             .sort((a, b) => a.regNo.localeCompare(b.regNo));
-        return mapped;
-    }, [selectedBranch, selectedYear]);
+
+    }, [selectedBranch, selectedYear, selectedSection, fetchedStudents]);
 
     // Load existing marks and subjects configuration
     useEffect(() => {
@@ -632,10 +698,36 @@ export default function MarksEntryPage() {
                         </thead>
 
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-700 text-[11px] text-gray-700 dark:text-gray-300">
-                            {filteredStudents.length === 0 ? (
+                            {loadingStudents ? (
                                 <tr>
-                                    <td colSpan={4 + subjects.length * 3} className="p-4 text-center text-gray-400 text-xs">
-                                        No students found matching filters.
+                                    <td colSpan={4 + subjects.length * 3} className="p-8 text-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+                                            <p className="text-sm text-gray-600 dark:text-gray-400">Loading students...</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : filteredStudents.length === 0 ? (
+                                <tr>
+                                    <td colSpan={4 + subjects.length * 3} className="p-8 text-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <AlertCircle className="w-12 h-12 text-amber-500" />
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">No students found</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                    Current filters: <strong>{selectedBranch}</strong> - Year <strong>{selectedYear}</strong> - Section <strong>{selectedSection}</strong>
+                                                </p>
+                                                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800/50 text-left max-w-md mx-auto">
+                                                    <p className="text-xs font-semibold text-blue-900 dark:text-blue-300 mb-2">💡 Possible reasons:</p>
+                                                    <ul className="text-xs text-blue-800 dark:text-blue-400 space-y-1 list-disc list-inside">
+                                                        <li>No students registered for this branch/year/section combination</li>
+                                                        <li>Students need to complete registration first</li>
+                                                        <li>Check if the correct branch/year/section is selected</li>
+                                                        <li>Students from JSON need to be imported via Admin Dashboard</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </td>
                                 </tr>
                             ) : (

@@ -74,10 +74,36 @@ export default function AnalyticsPage() {
     // Data State
     const [attendanceDocs, setAttendanceDocs] = useState<any[]>([]);
     const [overallPercent, setOverallPercent] = useState(0);
+    const [fetchedStudents, setFetchedStudents] = useState<any[]>([]);
 
     // Graph Type State
     const [selectedGraph, setSelectedGraph] = useState('pie');
     const chartRef = useRef<HTMLDivElement>(null);
+
+    // 0. Fetch Students from Firestore (to include newly registered ones)
+    useEffect(() => {
+        async function fetchStudents() {
+            try {
+                // Construct path: admin/students/{branch}/{year}/{section}
+                // Note: Year is number in state, explicitly convert to string if needed
+                const path = `admin/students/${selectedBranch}/${selectedYear}/${selectedSection}`;
+                const ref = collection(db, path);
+                const snap = await getDocs(ref);
+                const students = snap.docs.map(d => ({
+                    id: d.id,
+                    ...d.data()
+                }));
+                setFetchedStudents(students);
+            } catch (e) {
+                console.error("Error fetching students for analytics:", e);
+                // Fallback to empty, relying on JSON
+                setFetchedStudents([]);
+            }
+        }
+        if (selectedBranch && selectedYear && selectedSection) {
+            fetchStudents();
+        }
+    }, [selectedBranch, selectedYear, selectedSection]);
 
     // 1. Fetch Attendance Data (Real-time)
     useEffect(() => {
@@ -141,16 +167,58 @@ export default function AnalyticsPage() {
 
     // 4. Derived State
 
-    // A. Class Student List
+    // A. Class Student List (Merged)
     const classStudents = useMemo(() => {
-        const allStudents = Object.entries(studentData as Record<string, string>);
-        return allStudents
+        // 1. Local JSON Students
+        const allLocalStudents = Object.entries(studentData as Record<string, string>)
             .map(([regNo, name]) => {
                 const { data: info, calculatedYear } = detectBranchInfo(regNo);
-                return { regNo, name, branch: info?.branch, year: calculatedYear };
+                return {
+                    regNo,
+                    name,
+                    branch: info?.branch,
+                    year: calculatedYear,
+                    section: 'A' // Default assumption for local data
+                };
             })
+            // Filter local first roughly
             .filter(s => s.branch === selectedBranch && s.year === selectedYear);
-    }, [selectedBranch, selectedYear]);
+
+        // 2. Map Firestore Students
+        const dbStudents = fetchedStudents.map(s => ({
+            regNo: s.registrationNumber || s.regNo || '',
+            name: s.name || 'Unknown',
+            branch: s.branch,
+            year: s.year,
+            section: s.section
+        }));
+
+        // 3. Merge Strategies
+        const mergedMap = new Map();
+
+        // Add Local first
+        allLocalStudents.forEach(s => {
+            // Only add local if section matches (assuming local is 'A' unless we have better logic, 
+            // but here we filter rigorously if we knew section. 
+            // Since local doesn't have section, we might rely on the user manually selecting 'A' 
+            // or we include them if they are not in DB.
+            // For safety, let's include if section is 'A' OR if not A, we might lose them? 
+            // Actually, in AttendancePage we didn't filter local by section strictly because of this ambiguity.
+            // But here, selectedSection is a filter.
+            // Let's assume local JSON students are effectively "available for any section" or just 'A'.
+            if (selectedSection === 'A') {
+                mergedMap.set(s.regNo, s);
+            }
+        });
+
+        // Overwrite/Add DB students (who DEFINITELY match the section because we fetched from that path)
+        dbStudents.forEach(s => {
+            mergedMap.set(s.regNo, s);
+        });
+
+        return Array.from(mergedMap.values())
+            .sort((a: any, b: any) => a.regNo.localeCompare(b.regNo));
+    }, [selectedBranch, selectedYear, selectedSection, fetchedStudents]);
 
     // B. Filtered Docs based on Date Range
     const filteredDocs = useMemo(() => {

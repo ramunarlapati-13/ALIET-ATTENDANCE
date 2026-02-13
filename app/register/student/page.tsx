@@ -55,7 +55,7 @@ export default function StudentRegisterPage() {
 
         try {
             // Use registration number as email format for students
-            const email = `${formData.registrationNumber}@aliet.edu`;
+            const email = `${formData.registrationNumber}@aliet.ac.in`.toLowerCase();
             // Use registration number as default password
             const password = formData.registrationNumber;
 
