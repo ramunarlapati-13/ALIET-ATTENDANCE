@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
-import InstallPrompt from "@/components/ui/InstallPrompt";
+
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import { ThemeProvider } from "@/context/ThemeContext";
 import NavigationDock from "@/components/ui/NavigationDock";
@@ -66,7 +66,7 @@ export default function RootLayout({
                             <LoadingBar />
                         </Suspense>
                         {children}
-                        <InstallPrompt />
+
                         <NavigationDock />
                     </ThemeProvider>
                 </AuthProvider>

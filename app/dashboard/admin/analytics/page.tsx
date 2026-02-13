@@ -36,6 +36,7 @@ import {
     Check
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 import { useRouter } from 'next/navigation';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -51,6 +52,7 @@ const getTotalStudentsFromJson = (): number => {
 
 export default function AdminAnalyticsPage() {
     const { currentUser, signOut } = useAuth();
+    const { darkMode } = useTheme();
     const router = useRouter();
 
     // Filters - Institution Level (Multiple Branches)
@@ -510,7 +512,7 @@ export default function AdminAnalyticsPage() {
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                                <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                     <Building2 className="w-8 h-8 text-primary-600" />
                                     Institution-Level Analytics
                                 </h1>
@@ -543,7 +545,7 @@ export default function AdminAnalyticsPage() {
                                                     className="fixed inset-0 z-10"
                                                     onClick={() => setShowBranchDropdown(false)}
                                                 />
-                                                <div className="absolute top-full left-0 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-20 max-h-64 overflow-y-auto">
+                                                <div className="absolute top-full left-0 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-20 max-h-64 overflow-y-auto custom-scrollbar">
                                                     <div className="p-2">
                                                         <label className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded cursor-pointer">
                                                             <input
@@ -554,7 +556,7 @@ export default function AdminAnalyticsPage() {
                                                             />
                                                             <span className="text-sm font-medium text-gray-900 dark:text-white">Select All</span>
                                                         </label>
-                                                        <div className="border-t border-gray-200 my-1" />
+                                                        <div className="border-t border-gray-200 dark:border-gray-600 my-1" />
                                                         {BRANCHES.map(branch => (
                                                             <label key={branch} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded cursor-pointer">
                                                                 <input
@@ -596,8 +598,8 @@ export default function AdminAnalyticsPage() {
                                     </select>
                                 </div>
 
-                                <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-md px-3 py-2 w-full sm:w-auto">
-                                    <span className="text-xs text-gray-500 font-medium uppercase whitespace-nowrap">Range:</span>
+                                <div className="flex items-center gap-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 w-full sm:w-auto">
+                                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase whitespace-nowrap">Range:</span>
                                     <input
                                         type="date"
                                         value={startDate}
@@ -717,33 +719,45 @@ export default function AdminAnalyticsPage() {
                                             </Pie>
                                             <Tooltip
                                                 formatter={(value: number, name: string) => [`${value} Students`, name]}
-                                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                                contentStyle={{
+                                                    backgroundColor: darkMode ? '#1f2937' : '#fff',
+                                                    color: darkMode ? '#f3f4f6' : '#374151',
+                                                    borderRadius: '8px',
+                                                    border: darkMode ? '1px solid #374151' : 'none',
+                                                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                                                }}
+                                                itemStyle={{ color: darkMode ? '#f3f4f6' : '#374151' }}
                                             />
                                             <Legend />
                                         </PieChart>
                                     ) : selectedGraph === 'trend' ? (
                                         <LineChart data={dailyStats}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={darkMode ? '#374151' : '#e5e7eb'} />
                                             <XAxis
                                                 dataKey="date"
-                                                tick={{ fontSize: 12 }}
+                                                tick={{ fill: darkMode ? '#9ca3af' : '#6b7280', fontSize: 12 }}
                                                 tickFormatter={(val) => formatDate(val).substring(0, 5)}
+                                                stroke={darkMode ? '#374151' : '#e5e7eb'}
                                             />
-                                            <YAxis domain={[0, 100]} />
+                                            <YAxis
+                                                domain={[0, 100]}
+                                                tick={{ fill: darkMode ? '#9ca3af' : '#6b7280', fontSize: 12 }}
+                                                stroke={darkMode ? '#374151' : '#e5e7eb'}
+                                            />
                                             <Tooltip
                                                 content={({ active, payload, label }) => {
                                                     if (active && payload && payload.length) {
                                                         const data = payload[0].payload;
                                                         return (
-                                                            <div className="bg-white p-3 border border-gray-200 shadow-lg rounded-lg">
-                                                                <p className="font-bold text-gray-900">{formatDate(label)}</p>
-                                                                <p className="text-blue-600 font-semibold">
+                                                            <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 shadow-lg rounded-lg">
+                                                                <p className="font-bold text-gray-900 dark:text-gray-100">{formatDate(label)}</p>
+                                                                <p className="text-blue-600 dark:text-blue-400 font-semibold">
                                                                     Attendance: {data.percent}%
                                                                 </p>
-                                                                <p className="text-xs text-gray-500 mt-1">
+                                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                                                     ({data.present}/{data.total} Students)
                                                                 </p>
-                                                                <p className="text-xs text-gray-600 mt-1">
+                                                                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                                                                     {data.branch} - {data.year} Year - Sec {data.section}
                                                                 </p>
                                                             </div>
@@ -764,12 +778,19 @@ export default function AdminAnalyticsPage() {
                                         </LineChart>
                                     ) : selectedGraph === 'distribution' ? (
                                         <BarChart data={distributionStats}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                            <XAxis dataKey="range" tick={{ fontSize: 12 }} />
-                                            <YAxis allowDecimals={false} />
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={darkMode ? '#374151' : '#e5e7eb'} />
+                                            <XAxis dataKey="range" tick={{ fill: darkMode ? '#9ca3af' : '#6b7280', fontSize: 12 }} stroke={darkMode ? '#374151' : '#e5e7eb'} />
+                                            <YAxis allowDecimals={false} tick={{ fill: darkMode ? '#9ca3af' : '#6b7280', fontSize: 12 }} stroke={darkMode ? '#374151' : '#e5e7eb'} />
                                             <Tooltip
-                                                cursor={{ fill: 'transparent' }}
-                                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                                cursor={{ fill: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+                                                contentStyle={{
+                                                    backgroundColor: darkMode ? '#1f2937' : '#fff',
+                                                    color: darkMode ? '#f3f4f6' : '#374151',
+                                                    borderRadius: '8px',
+                                                    border: darkMode ? '1px solid #374151' : 'none',
+                                                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                                                }}
+                                                itemStyle={{ color: darkMode ? '#f3f4f6' : '#374151' }}
                                             />
                                             <Legend />
                                             <Bar dataKey="count" name="Students" fill="#8884d8">
@@ -780,25 +801,26 @@ export default function AdminAnalyticsPage() {
                                         </BarChart>
                                     ) : (
                                         <BarChart data={dailyStats}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={darkMode ? '#374151' : '#e5e7eb'} />
                                             <XAxis
                                                 dataKey="date"
-                                                tick={{ fontSize: 12 }}
+                                                tick={{ fill: darkMode ? '#9ca3af' : '#6b7280', fontSize: 12 }}
                                                 tickFormatter={(val) => formatDate(val).substring(0, 5)}
+                                                stroke={darkMode ? '#374151' : '#e5e7eb'}
                                             />
-                                            <YAxis allowDecimals={false} />
+                                            <YAxis allowDecimals={false} tick={{ fill: darkMode ? '#9ca3af' : '#6b7280', fontSize: 12 }} stroke={darkMode ? '#374151' : '#e5e7eb'} />
                                             <Tooltip
-                                                cursor={{ fill: 'transparent' }}
+                                                cursor={{ fill: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
                                                 content={({ active, payload, label }) => {
                                                     if (active && payload && payload.length) {
                                                         const data = payload[0].payload;
                                                         return (
-                                                            <div className="bg-white p-3 border border-gray-200 shadow-lg rounded-lg">
-                                                                <p className="font-bold text-gray-900">{formatDate(label)}</p>
-                                                                <p className="text-green-600 font-semibold">
+                                                            <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 shadow-lg rounded-lg">
+                                                                <p className="font-bold text-gray-900 dark:text-gray-100">{formatDate(label)}</p>
+                                                                <p className="text-green-600 dark:text-green-400 font-semibold">
                                                                     Present: {data.present}
                                                                 </p>
-                                                                <p className="text-xs text-gray-500 mt-1">
+                                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                                                     Total Class Strength: {data.total}
                                                                 </p>
                                                             </div>
