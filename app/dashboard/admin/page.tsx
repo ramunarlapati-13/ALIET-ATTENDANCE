@@ -54,6 +54,7 @@ function AdminDashboard() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterBranch, setFilterBranch] = useState('all');
     const [filterYear, setFilterYear] = useState('all');
+    const [selectedBranchDetail, setSelectedBranchDetail] = useState<string | null>(null);
     const { darkMode, toggleTheme } = useTheme();
 
     // Edit Modal States
@@ -135,8 +136,18 @@ function AdminDashboard() {
     }, []);
 
     const handleSignOut = async () => {
-        await signOut();
-        router.push('/login');
+        if (confirm('Are you sure you want to logout?')) {
+            await signOut();
+            router.push('/login');
+        }
+    };
+
+    const handleBranchClick = (branch: string) => {
+        setSelectedBranchDetail(branch === selectedBranchDetail ? null : branch);
+        setFilterBranch(branch);
+        setActiveTab('students');
+        // Clear year filter when switching branches to show full enrollment initially
+        setFilterYear('all');
     };
 
     const handleApproveUser = async (user: Faculty) => {
@@ -538,16 +549,88 @@ function AdminDashboard() {
                                 const registeredCount = students.filter(s => s.branch === branch).length;
 
                                 return (
-                                    <div key={branch} className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                                        <p className="text-2xl font-bold text-primary-600">{count}</p>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">{branch}</p>
+                                    <button
+                                        key={branch}
+                                        onClick={() => handleBranchClick(branch)}
+                                        className={`text-center p-4 rounded-lg transition-all transform hover:scale-105 ${selectedBranchDetail === branch
+                                            ? 'bg-primary-600 text-white shadow-lg ring-2 ring-primary-300'
+                                            : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100'
+                                            }`}
+                                    >
+                                        <p className={`text-2xl font-bold ${selectedBranchDetail === branch ? 'text-white' : 'text-primary-600'}`}>{count}</p>
+                                        <p className={`text-sm ${selectedBranchDetail === branch ? 'text-primary-50' : 'text-gray-600 dark:text-gray-400'}`}>{branch}</p>
                                         {branch === 'EEE' && registeredCount > 0 && (
-                                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">({registeredCount} registered)</p>
+                                            <p className={`text-xs mt-1 ${selectedBranchDetail === branch ? 'text-primary-100' : 'text-gray-500 dark:text-gray-500'}`}>({registeredCount} registered)</p>
                                         )}
-                                    </div>
+                                    </button>
                                 );
                             })}
                         </div>
+
+                        {selectedBranchDetail && (
+                            <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6 animate-in slide-in-from-top-4 duration-300">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <GraduationCap className="w-5 h-5 text-primary-600" />
+                                        {selectedBranchDetail} - Yearly Enrollment
+                                    </h3>
+                                    <button
+                                        onClick={() => setSelectedBranchDetail(null)}
+                                        className="text-sm text-primary-600 hover:underline"
+                                    >
+                                        Clear View
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    {[1, 2, 3, 4].map(year => {
+                                        // Base list from Firestore (registered users)
+                                        let yearStudents = (studentsMap[selectedBranchDetail] || []).filter(s => s.year === year);
+
+                                        // Special case: EEE 3rd Year should show all 44 from JSON
+                                        if (selectedBranchDetail === 'EEE' && year === 3) {
+                                            const jsonStudents = studentData as Record<string, string>;
+                                            const combinedList: Student[] = Object.entries(jsonStudents).map(([regNo, name]) => {
+                                                // Check if this student is already in Firestore
+                                                const registered = yearStudents.find(s => s.registrationNumber === regNo);
+                                                return registered || {
+                                                    uid: regNo, // Use RegNo as temporary UID
+                                                    name,
+                                                    registrationNumber: regNo,
+                                                    branch: 'EEE',
+                                                    year: 3,
+                                                    email: 'Not Registered'
+                                                };
+                                            });
+                                            yearStudents = combinedList;
+                                        }
+
+                                        return (
+                                            <div key={year} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">{year}{year === 1 ? 'st' : year === 2 ? 'nd' : year === 3 ? 'rd' : 'th'} Year</span>
+                                                    <span className="bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 text-xs font-bold px-2 py-1 rounded-full">{yearStudents.length}</span>
+                                                </div>
+                                                <div className="space-y-2 mt-3 max-h-60 overflow-y-auto custom-scrollbar">
+                                                    {yearStudents.length > 0 ? (
+                                                        [...yearStudents].sort((a, b) => (a.registrationNumber || '').localeCompare(b.registrationNumber || '')).map(s => (
+                                                            <div key={s.uid} className={`text-xs p-2 rounded flex justify-between items-center group ${s.email === 'Not Registered' ? 'bg-gray-50/50 dark:bg-gray-700/30 opacity-70 italic' : 'bg-gray-50 dark:bg-gray-700/50'} border border-transparent hover:border-primary-300 transition-colors`}>
+                                                                <span className={`font-medium truncate max-w-[100px] ${s.email === 'Not Registered' ? 'text-gray-400' : 'text-gray-700 dark:text-gray-200'}`}>{s.name}</span>
+                                                                <div className="flex items-center gap-2">
+                                                                    {s.email !== 'Not Registered' && <div className="w-1.5 h-1.5 bg-green-500 rounded-full" title="Registered" />}
+                                                                    <span className="text-[10px] text-gray-400 font-mono">{s.registrationNumber?.slice(-3)}</span>
+                                                                </div>
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <p className="text-[10px] text-gray-400 italic text-center py-2">No students registered</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
                         {students.filter(s => !s.branch || !BRANCHES.includes(s.branch)).length > 0 && (
                             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                                 <p className="text-sm text-yellow-800">
@@ -559,7 +642,7 @@ function AdminDashboard() {
                     </div>
 
                     {/* Tabs and Filters */}
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+                    <div id="users-table" className="bg-white dark:bg-gray-800 rounded-lg shadow">
                         <div className="border-b border-gray-200 dark:border-gray-700">
                             <div className="flex flex-col lg:flex-row items-center justify-between px-6 py-4 gap-4">
                                 <div className="flex gap-2 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
