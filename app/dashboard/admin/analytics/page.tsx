@@ -470,13 +470,13 @@ export default function AdminAnalyticsPage() {
 
     return (
         <ProtectedRoute allowedRoles={['admin']}>
-            <div className="min-h-screen bg-gray-50">
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
                 {/* Navigation Header */}
-                <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+                <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10 shadow-sm">
                     <div className="max-w-7xl mx-auto px-6 py-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-6">
-                                <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>
+                                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
                                 <nav className="flex items-center gap-2">
                                     <button
                                         onClick={() => router.push('/dashboard/admin')}
@@ -507,14 +507,14 @@ export default function AdminAnalyticsPage() {
                 {/* Main Content */}
                 <div className="p-6 max-w-7xl mx-auto space-y-6">
                     {/* Header & Filters */}
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                             <div>
                                 <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                                     <Building2 className="w-8 h-8 text-primary-600" />
                                     Institution-Level Analytics
                                 </h1>
-                                <p className="text-gray-500 text-sm mt-1">Comprehensive attendance insights across all departments.</p>
+                                <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Comprehensive attendance insights across all departments.</p>
                             </div>
 
                             {/* Filter Controls */}
@@ -543,27 +543,27 @@ export default function AdminAnalyticsPage() {
                                                     className="fixed inset-0 z-10"
                                                     onClick={() => setShowBranchDropdown(false)}
                                                 />
-                                                <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg z-20 max-h-64 overflow-y-auto">
+                                                <div className="absolute top-full left-0 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-20 max-h-64 overflow-y-auto">
                                                     <div className="p-2">
-                                                        <label className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded cursor-pointer">
+                                                        <label className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded cursor-pointer">
                                                             <input
                                                                 type="checkbox"
                                                                 checked={selectedBranches.length === BRANCHES.length}
                                                                 onChange={toggleSelectAll}
                                                                 className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                                                             />
-                                                            <span className="text-sm font-medium text-gray-900">Select All</span>
+                                                            <span className="text-sm font-medium text-gray-900 dark:text-white">Select All</span>
                                                         </label>
                                                         <div className="border-t border-gray-200 my-1" />
                                                         {BRANCHES.map(branch => (
-                                                            <label key={branch} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded cursor-pointer">
+                                                            <label key={branch} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded cursor-pointer">
                                                                 <input
                                                                     type="checkbox"
                                                                     checked={selectedBranches.includes(branch)}
                                                                     onChange={() => toggleBranch(branch)}
                                                                     className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                                                                 />
-                                                                <span className="text-sm text-gray-700">{branch}</span>
+                                                                <span className="text-sm text-gray-700 dark:text-gray-300">{branch}</span>
                                                                 {selectedBranches.includes(branch) && (
                                                                     <Check className="w-4 h-4 text-primary-600 ml-auto" />
                                                                 )}
@@ -602,15 +602,15 @@ export default function AdminAnalyticsPage() {
                                         type="date"
                                         value={startDate}
                                         onChange={(e) => setStartDate(e.target.value)}
-                                        className="text-sm outline-none text-gray-700 min-w-0 flex-1 sm:w-32 bg-transparent"
+                                        className="text-sm outline-none text-gray-700 dark:text-gray-300 min-w-0 flex-1 sm:w-32 bg-transparent"
                                         placeholder="Start"
                                     />
-                                    <span className="text-gray-400">-</span>
+                                    <span className="text-gray-400 dark:text-gray-500">-</span>
                                     <input
                                         type="date"
                                         value={endDate}
                                         onChange={(e) => setEndDate(e.target.value)}
-                                        className="text-sm outline-none text-gray-700 min-w-0 flex-1 sm:w-32 bg-transparent"
+                                        className="text-sm outline-none text-gray-700 dark:text-gray-300 min-w-0 flex-1 sm:w-32 bg-transparent"
                                         placeholder="End"
                                     />
                                 </div>
@@ -619,44 +619,44 @@ export default function AdminAnalyticsPage() {
 
                         {/* KPI Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                            <div className="p-4 bg-blue-50 dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-500">
                                 <div className="flex items-center gap-3 mb-2">
-                                    <div className="p-2 bg-blue-100 rounded-md">
-                                        <Calendar className="w-5 h-5 text-blue-600" />
+                                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-md">
+                                        <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                     </div>
-                                    <span className="text-sm font-medium text-blue-800">Total Classes</span>
+                                    <span className="text-sm font-medium text-blue-800 dark:text-blue-300">Total Classes</span>
                                 </div>
-                                <p className="text-2xl font-bold text-blue-900">{filteredDocs.length}</p>
+                                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{filteredDocs.length}</p>
                             </div>
 
-                            <div className="p-4 bg-green-50 rounded-lg border border-green-100">
+                            <div className="p-4 bg-green-50 dark:bg-gray-800 rounded-lg border border-green-200 dark:border-green-500">
                                 <div className="flex items-center gap-3 mb-2">
-                                    <div className="p-2 bg-green-100 rounded-md">
-                                        <Users className="w-5 h-5 text-green-600" />
+                                    <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-md">
+                                        <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
                                     </div>
-                                    <span className="text-sm font-medium text-green-800">Overall Attendance</span>
+                                    <span className="text-sm font-medium text-green-800 dark:text-green-300">Overall Attendance</span>
                                 </div>
-                                <p className="text-2xl font-bold text-green-900">{overallPercent}%</p>
+                                <p className="text-2xl font-bold text-green-900 dark:text-green-100">{overallPercent}%</p>
                             </div>
 
-                            <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
+                            <div className="p-4 bg-purple-50 dark:bg-gray-800 rounded-lg border border-purple-200 dark:border-purple-500">
                                 <div className="flex items-center gap-3 mb-2">
-                                    <div className="p-2 bg-purple-100 rounded-md">
-                                        <Users className="w-5 h-5 text-purple-600" />
+                                    <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-md">
+                                        <Users className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                                     </div>
-                                    <span className="text-sm font-medium text-purple-800">Total Students</span>
+                                    <span className="text-sm font-medium text-purple-800 dark:text-purple-300">Total Students</span>
                                 </div>
-                                <p className="text-2xl font-bold text-purple-900">{globalStudentStats.length}</p>
+                                <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{globalStudentStats.length}</p>
                             </div>
 
-                            <div className="p-4 bg-orange-50 rounded-lg border border-orange-100">
+                            <div className="p-4 bg-orange-50 dark:bg-gray-800 rounded-lg border border-orange-200 dark:border-orange-500">
                                 <div className="flex items-center gap-3 mb-2">
-                                    <div className="p-2 bg-orange-100 rounded-md">
-                                        <ArrowUpRight className="w-5 h-5 text-orange-600" />
+                                    <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-md">
+                                        <ArrowUpRight className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                                     </div>
-                                    <span className="text-sm font-medium text-orange-800">Avg. Students/Class</span>
+                                    <span className="text-sm font-medium text-orange-800 dark:text-orange-300">Avg. Students/Class</span>
                                 </div>
-                                <p className="text-2xl font-bold text-orange-900">
+                                <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">
                                     {filteredDocs.length > 0
                                         ? Math.round(dailyStats.reduce((acc, curr) => acc + curr.present, 0) / filteredDocs.length)
                                         : 0}
@@ -669,9 +669,9 @@ export default function AdminAnalyticsPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                         {/* Main Chart */}
-                        <div id="chart-container" className="bg-white p-6 rounded-xl shadow-sm border border-gray-200" ref={chartRef}>
+                        <div id="chart-container" className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700" ref={chartRef}>
                             <div id="chart-controls" className="flex justify-between items-center mb-6">
-                                <h3 className="font-semibold text-gray-800">
+                                <h3 className="font-semibold text-gray-800 dark:text-gray-200">
                                     {selectedGraph === 'pie' ? 'Attendance Distribution (Pie)' :
                                         selectedGraph === 'trend' ? 'Attendance Trend' :
                                             selectedGraph === 'distribution' ? 'Student Performance Distribution' :
@@ -681,7 +681,7 @@ export default function AdminAnalyticsPage() {
                                     <select
                                         value={selectedGraph}
                                         onChange={(e) => setSelectedGraph(e.target.value)}
-                                        className="text-sm border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-primary-500 text-gray-900 bg-white"
+                                        className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
                                     >
                                         <option value="pie">Pie Chart</option>
                                         <option value="trend">Trend Line</option>
@@ -816,25 +816,25 @@ export default function AdminAnalyticsPage() {
                         </div>
 
                         {/* Branch-wise Summary */}
-                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                            <h3 className="font-semibold text-gray-800 mb-4">Branch-wise Summary</h3>
+                        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-4">Branch-wise Summary</h3>
                             <div className="overflow-y-auto max-h-[300px]">
                                 <table className="min-w-full">
-                                    <thead className="bg-gray-50 sticky top-0">
+                                    <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
                                         <tr>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Branch</th>
-                                            <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Students</th>
-                                            <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Avg %</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Branch</th>
+                                            <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Students</th>
+                                            <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Avg %</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-200">
+                                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                                         {branchSummary.length === 0 ? (
-                                            <tr><td colSpan={3} className="p-4 text-center text-sm text-gray-500">No data available</td></tr>
+                                            <tr><td colSpan={3} className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">No data available</td></tr>
                                         ) : (
                                             branchSummary.map((b: any) => (
                                                 <tr key={b.branch}>
-                                                    <td className="px-4 py-3 text-sm font-semibold text-gray-900">{b.branch}</td>
-                                                    <td className="px-4 py-3 text-sm text-gray-600 text-center">{b.totalStudents}</td>
+                                                    <td className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-gray-100">{b.branch}</td>
+                                                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 text-center">{b.totalStudents}</td>
                                                     <td className="px-4 py-3 text-sm font-bold text-right">
                                                         <span className={`${b.avgAttendance >= 75 ? 'text-green-600' : b.avgAttendance >= 65 ? 'text-yellow-600' : 'text-red-600'}`}>
                                                             {b.avgAttendance}%
@@ -850,29 +850,29 @@ export default function AdminAnalyticsPage() {
                     </div>
 
                     {/* Low Attendance Alert */}
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                        <h3 className="font-semibold text-gray-800 mb-4 text-red-600">Low Attendance Alert (&lt; 65%)</h3>
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <h3 className="font-semibold text-red-600 dark:text-red-400 mb-4">Low Attendance Alert (&lt; 65%)</h3>
                         <div className="overflow-y-auto max-h-[300px]">
                             <table className="min-w-full">
-                                <thead className="bg-gray-50 sticky top-0">
+                                <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
                                     <tr>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Reg No</th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Branch</th>
-                                        <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Year</th>
-                                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">%</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Reg No</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Name</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Branch</th>
+                                        <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Year</th>
+                                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">%</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-200">
+                                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                                     {globalStudentStats.filter((s: any) => s.percent < 65).length === 0 ? (
-                                        <tr><td colSpan={5} className="p-4 text-center text-sm text-gray-500">No students below 65%</td></tr>
+                                        <tr><td colSpan={5} className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">No students below 65%</td></tr>
                                     ) : (
                                         globalStudentStats.filter((s: any) => s.percent < 65).map((s: any) => (
                                             <tr key={s.regNo}>
-                                                <td className="px-4 py-3 text-sm font-mono text-gray-600">{s.regNo}</td>
-                                                <td className="px-4 py-3 text-sm text-gray-900 truncate max-w-[150px]">{s.name}</td>
-                                                <td className="px-4 py-3 text-sm text-gray-600">{s.branch}</td>
-                                                <td className="px-4 py-3 text-sm text-gray-600 text-center">{s.year}</td>
+                                                <td className="px-4 py-3 text-sm font-mono text-gray-600 dark:text-gray-400">{s.regNo}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 truncate max-w-[150px]">{s.name}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{s.branch}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 text-center">{s.year}</td>
                                                 <td className="px-4 py-3 text-sm font-bold text-red-600 text-right">{s.percent}%</td>
                                             </tr>
                                         ))
@@ -883,9 +883,9 @@ export default function AdminAnalyticsPage() {
                     </div>
 
                     {/* Detailed Student List */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                        <div className="p-6 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
-                            <h3 className="font-semibold text-gray-800">Detailed Student Report</h3>
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex flex-col md:flex-row justify-between items-center gap-4">
+                            <h3 className="font-semibold text-gray-800 dark:text-gray-200">Detailed Student Report</h3>
                             <div className="flex items-center gap-3">
                                 <div className="relative">
                                     <button
@@ -898,24 +898,24 @@ export default function AdminAnalyticsPage() {
                                     </button>
 
                                     {showDownloadMenu && (
-                                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10 py-1">
+                                        <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-10 py-1">
                                             <button
                                                 onClick={() => handleDownloadReport('pdf')}
-                                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center gap-2"
                                             >
                                                 <FileText className="w-4 h-4 text-red-500" />
                                                 PDF Document
                                             </button>
                                             <button
                                                 onClick={() => handleDownloadReport('excel')}
-                                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center gap-2"
                                             >
                                                 <FileSpreadsheet className="w-4 h-4 text-green-600" />
                                                 Excel (.xlsx)
                                             </button>
                                             <button
                                                 onClick={() => handleDownloadReport('csv')}
-                                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center gap-2"
                                             >
                                                 <FileSpreadsheet className="w-4 h-4 text-blue-500" />
                                                 Google Sheets (.csv)
@@ -926,28 +926,28 @@ export default function AdminAnalyticsPage() {
                             </div>
                         </div>
                         <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
+                            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead className="bg-gray-50 dark:bg-gray-700">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">S.No</th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Reg No</th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Name</th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Branch</th>
-                                        <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Year</th>
-                                        <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Section</th>
-                                        <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Classes Attended</th>
-                                        <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Percentage</th>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">S.No</th>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Reg No</th>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Branch</th>
+                                        <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Year</th>
+                                        <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Section</th>
+                                        <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Classes Attended</th>
+                                        <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Percentage</th>
                                     </tr>
                                 </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
+                                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                     {globalStudentStats.map((student: any, idx: number) => (
-                                        <tr key={student.regNo} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{idx + 1}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">{student.regNo}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{student.name}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{student.branch}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-center">{student.year}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-center">{student.section}</td>
+                                        <tr key={student.regNo} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{idx + 1}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-100">{student.regNo}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{student.name}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{student.branch}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300 text-center">{student.year}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300 text-center">{student.section}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-600">
                                                 <span className="font-medium text-gray-900">{student.present}</span>
                                                 <span className="text-gray-400 mx-1">/</span>

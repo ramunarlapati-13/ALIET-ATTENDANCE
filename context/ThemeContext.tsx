@@ -32,6 +32,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
+    // Apply theme changes immediately whenever darkMode changes
+    useEffect(() => {
+        if (!mounted) return;
+
+        if (darkMode) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }, [darkMode, mounted]);
+
     const toggleTheme = () => {
         const newMode = !darkMode;
         setDarkMode(newMode);
@@ -43,9 +54,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             localStorage.setItem('theme', 'light');
         }
     };
-
-    // Avoid hydration mismatch by rendering children only after mount (optional, or just handle initial state carefully)
-    // Here we render continuously but initial state might flicker. The useEffect syncs it fast.
 
     return (
         <ThemeContext.Provider value={{ darkMode, toggleTheme }}>
