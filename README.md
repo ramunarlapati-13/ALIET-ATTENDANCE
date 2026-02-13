@@ -1,143 +1,106 @@
-# 🎓 ALIETAKE - College Management System
+# 🎓 ALIETAKE - Advanced College Management System
 
-A state-of-the-art, high-performance web application designed for comprehensive college management. Built with **Next.js 14**, **Firebase**, and **Tailwind CSS**, it provides seamless attendance tracking, academic monitoring, and administrative control with a focus on speed and user experience.
-
----
-
-## 🗺️ Website Structure & Sitemap
-
-```mermaid
-graph TD
-    A[Landing / Login] --> B{Role Check}
-    B -->|Admin| C[Admin Dashboard]
-    B -->|Faculty| D[Faculty Portal]
-    B -->|Student| E[Student Portal]
-
-    C --> C1[User Management]
-    C --> C2[Branch Statistics]
-    C --> C3[Activity Logs]
-    C --> C4[Data Import Tool]
-
-    D --> D1[Mark Attendance]
-    D --> D2[Recent Submissions]
-    D --> D3[Student Analytics]
-    D --> D4[Faculty Profile]
-
-    E --> E1[Attendance History]
-    E --> E2[Academic Records]
-    E --> E3[Profile Settings]
-```
-
-### 📍 Key Routes
--   **`/`** (Auto-redirects to Login)
--   **`/login`** - Intelligent Authentication Portal (supports Student/Faculty/Admin auto-detection).
--   **`/register`** - New User Onboarding with real-time registry validation.
--   **`/dashboard/admin`** - Master control center with live activity feeds and spotlight UI.
--   **`/dashboard/faculty`** - Faculty hub for marking attendance and viewing analytics.
--   **`/dashboard/faculty/attendance`** - Optimized attendance marker with bulk actions and lateral entry support.
--   **`/dashboard/student`** - Personalized student portal for attendance and academics.
--   **`/import-students`** - Bulk data ingestion utility for institutional migrations.
+A state-of-the-art, high-performance web application designed for comprehensive college management. Built with **Next.js 14**, **Firebase Hub**, and **Tailwind CSS**, it provides seamless attendance tracking, academic monitoring, and administrative control with a focus on premium aesthetics and institutional efficiency.
 
 ---
 
-## 🚀 Key Features
+## 🛠️ Technology Stack
 
-### ⚡ Performance & UX (New!)
--   **Optimistic UI Updates**: Instant visual feedback on attendance submissions and user deletions—no waiting for database round-trips.
--   **Fast-Feeling Loading Bars**: Intelligent progress indicators that jump to 70% instantly to signify responsiveness.
--   **Skeleton Screens**: Beautiful, shimmering placeholders that prevent layout shift during data fetching.
--   **Real-Time Synchronization**: Live updates across all dashboards using Firestore Listeners and Realtime Database.
-
-### 👨‍💼 Admin Dashboard
--   **Spotlight Interface**: Modern dark mode with a custom interactive cursor effect.
--   **Live Activity Logs**: Real-time monitoring of system-wide logins and critical actions.
--   **Smart User Management**: Edit, delete, and promote users with immediate interface updates.
--   **Branch Analytics**: Dynamic student counts across all 8 engineering branches (CSE, IT, ECE, EEE, etc.).
-
-### 🎓 Attendance Engine
--   **Intelligent Branch Detection**: Automatically identifies branch and year from registration numbers.
--   **Lateral Entry Support**: Correctly identifies 2nd-year joiners and calculates their current academic year.
--   **Bulk Operations**: Mark entire classes as present or absent in a single click.
--   **History Tracking**: 2-hour edit window for faculty with detailed absentee lists.
+| Layer | Technology | Description |
+| :--- | :--- | :--- |
+| **Framework** | Next.js 14 | App Router, SSR, Optimization |
+| **Language** | TypeScript | Type-safe development |
+| **Styling** | Tailwind CSS | Utility-first CSS, Dark/Light modes |
+| **Database** | Firestore & RTDB | Hybrid persistent & real-time sync |
+| **Auth** | Firebase Auth | Secure multi-role authentication |
+| **Analytics** | Recharts | Dynamic data visualization & charting |
+| **Charts** | html2canvas | Graph-to-image export utility |
+| **Reporting** | jsPDF / xlsx | Professional PDF & Excel export tools |
+| **State** | Zustand / Context | Global state & local provider management |
+| **Icons** | Lucide React | Modern vector icons |
+| **PWA** | Next-PWA | Desktop/Mobile installation & offline mode |
 
 ---
 
-## 🛠 Tech Stack
-
-| Layer | Technology |
-| :--- | :--- |
-| **Framework** | Next.js 14 (App Router) |
-| **Language** | TypeScript |
-| **Styling** | Tailwind CSS (Dark Mode + Custom Animations) |
-| **Primary DB** | Firebase Firestore (Persistent Data) |
-| **Live Sync** | Firebase Realtime Database (Instant Updates) |
-| **Auth** | Firebase Auth (Google OAuth + Email/Pass) |
-| **Icons** | Lucide React |
-
----
-
-## 🏁 Getting Started
-
-### Installation
-
-1.  **Clone & Install**:
-    ```bash
-    git clone <repository-url>
-    npm install
-    ```
-
-2.  **Environment Setup**:
-    Create `.env.local` and add your Firebase config:
-    ```env
-    NEXT_PUBLIC_FIREBASE_API_KEY=your_key
-    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-    NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project
-    ...
-    ```
-
-3.  **Run Development**:
-    ```bash
-    npm run dev
-    ```
-
----
-
-## 🔒 Database Architecture
-
-The system utilizes a hybrid Firebase approach for maximum efficiency:
-
-### Firestore (Persistent Data)
--   **`users/`**: Core user profiles and role configurations.
--   **`attendance/`**: Historical attendance records indexed by date.
--   **`logs/`**: Detailed activity logs for administrative auditing.
--   **`admin/students/{branch}/`**: Optimized student directory organized by engineering discipline.
-
-### Realtime Database (Live Data)
--   **`attendance/{date}/{branch}/{year}/{section}`**: Instant synchronization for live class monitoring and department-wide visibility.
-
----
-
-## 📂 Project Directory Structure
+## 📂 Project Structure
 
 ```text
 ALIET-ATTENDANCE/
-├── app/                    # App Router Pages & Layouts
-│   ├── dashboard/         # Role-Specific Interfaces
-│   ├── login/             # Auth Pages
-│   └── register/          # User Onboarding
-├── components/            # UI Component Library
-│   ├── ui/               # LoadingBar, Skeleton, Spotlight
-│   └── auth/             # Role Wrappers
-├── context/              # Global State (Auth, Theme)
-├── data/                 # Static JSON Assets
-├── lib/                  # Service Configs (Firebase)
-├── utils/                # Business Logic Helpers
-└── public/               # Static Assets & PWA Config
+├── app/                        # Next.js App Router
+│   ├── api/                    # Serverless route handlers
+│   ├── dashboard/              # Role-specific portals
+│   │   ├── admin/              # Master Management & Analytics
+│   │   ├── faculty/            # Attendance Marking & Dept Feed
+│   │   └── student/            # Attendance Tracks & Profile
+│   ├── login/                  # Clean entry portal
+│   ├── register/               # Multi-step student onboarding
+│   ├── register-faculty/       # Administrative faculty registration
+│   ├── import-students/        # Bulk ingestion tools
+│   ├── globals.css             # Global styles & Pencil Animations
+│   └── layout.tsx              # Root layout with Global context
+├── components/                 # Reusable Component Library
+│   ├── ui/                     # Core UI elements (Pencil Loader, Buttons, etc.)
+│   ├── auth/                   # Protected routes & role wrappers
+│   └── announcements/          # Notification ticker systems
+├── context/                    # React Context Providers
+│   ├── AuthContext.tsx         # Firebase user & session management
+│   └── ThemeContext.tsx        # Dynamic Dark/Light mode engine
+├── data/                       # Local JSON Registries
+│   └── students.json           # Master EEE enrollment reference
+├── lib/                        # Configuration & Core SDKs
+│   └── firebase/               # Firebase Admin & Client config
+├── types/                      # Global TypeScript interfaces
+└── utils/                      # Business logic & date helpers
 ```
 
 ---
 
-## 📜 License & Legal
+## 🧱 Key UI Components
 
-© 2026 **ALIET College**. Designed and Developed for Advanced Campus Management. All rights reserved.
+### ✏️ Signature Pencil Loader
+A custom, branded animation used throughout the application to signify loading states.
+- **`loader-1.tsx`**: The core SVG animation component with multi-size `scale` support.
+- **`GlobalPencilLoader.tsx`**: A full-screen overlay integrated into the root layout with **Backdrop Blur** and tracking-transition effects.
+- **`LoadingBar.tsx`**: A top-mounted progress bar for route transitions.
+
+### 🌓 Theme Engine
+- **`ThemeToggleFloating.tsx`**: A sleek icon-based switcher for Dark/Light modes.
+- **Custom Utility Styles**: Integrated dark mode support for all charts, tables, and dashboards.
+
+### 🖱️ Experience Tools
+- **`SpotlightCursor.tsx`**: An interactive light-follow effect for the Admin Dashboard.
+- **`NavigationDock.tsx`**: A premium mobile-responsive floating navigation bar.
+- **`Skeleton.tsx`**: Shimmer-effect placeholders for optimistic data loading.
+
+---
+
+## 🚀 Core Features
+
+### 📅 Advanced Attendance Engine
+- **Lateral Entry Intelligence**: Automatically calculates academic year based on registration number patterns.
+- **Real-Time Sync**: RTDB integration ensures attendance marked by faculty reflects instantly in HOD/Admin views.
+- **Audit Logging**: Tracks every sign-in and attendance change in the `logs` collection.
+
+### 📊 Admin Control Center
+- **Interactive Branch Cards**: Click any branch (CSE, EEE, etc.) to view live enrollment.
+- **Year-Wise Breakdown**: Detailed visibility of students across 1st, 2nd, 3rd, and 4th Year.
+- **Master Registry Check**: Cross-references Firestore data with `students.json` to identify un-registered students.
+
+### 📈 Analytics & Reporting
+- **Multi-Format Export**: Generate professional reports in **PDF**, **Excel**, or **CSV**.
+- **Visual Trends**: Performance charting for branches and individual student attendance.
+- **Data Ingestion**: Support for bulk student uploads via CSV/Excel using PapaParse and XLSX.
+
+---
+
+## 🏁 Development Setup
+
+1. **Install Dependencies**: `npm install`
+2. **Setup Env**: Copy `.env.example` to `.env.local` and add Firebase credentials.
+3. **Launch**: `npm run dev`
+4. **Build PWA**: `npm run build`
+
+---
+
+© 2026 **ALIET College**. Designed for Excellence.
 
