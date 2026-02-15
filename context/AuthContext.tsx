@@ -38,7 +38,11 @@ export function useAuth() {
     return context;
 }
 
-export const ADMIN_EMAILS = ['zestacademyonline@gmail.com', 'ramunarlapati27@gmail.com'];
+// SECURITY: Admin emails moved to environment variables
+// Fallback to hardcoded emails for backward compatibility during migration
+export const ADMIN_EMAILS = process.env.NEXT_PUBLIC_ADMIN_EMAILS
+    ? process.env.NEXT_PUBLIC_ADMIN_EMAILS.split(',').map(e => e.trim()).filter(Boolean)
+    : ['zestacademyonline@gmail.com', 'ramunarlapati27@gmail.com'];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [currentUser, setCurrentUser] = useState<User | null>(null);

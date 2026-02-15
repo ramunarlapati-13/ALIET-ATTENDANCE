@@ -1,6 +1,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
+import { deleteUserRequestSchema } from '@/lib/validation/schemas';
+import { z } from 'zod';
 
 export async function POST(req: NextRequest) {
     if (!adminAuth || !adminDb) {
@@ -12,24 +14,41 @@ export async function POST(req: NextRequest) {
 
     try {
         const body = await req.json();
-        const { uid, adminToken } = body;
 
-        if (!uid) {
-            return NextResponse.json(
-                { error: 'Missing UID' },
-                { status: 400 }
-            );
+        // SECURITY: Validate input before processing
+        let validated;
+        try {
+            validated = deleteUserRequestSchema.parse(body);
+        } catch (error) {
+            if (error instanceof z.ZodError) {
+                return NextResponse.json(
+                    {
+                        error: 'Invalid input',
+                        details: error.errors.map(e => ({
+                            field: e.path.join('.'),
+                            message: e.message
+                        }))
+                    },
+                    { status: 400 }
+                );
+            }
+            throw error;
         }
 
-        console.log(`[DeleteUser] Request to delete user UID: ${uid}`);
+        const { uid, adminToken } = validated;
+
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`[DeleteUser] Request to delete user UID: ${uid}`);
+        }
 
         // 1. Verify admin token
         if (adminToken) {
             try {
                 const decodedToken = await adminAuth.verifyIdToken(adminToken);
-                // Optionally check role
-                // const userRecord = await adminAuth.getUser(decodedToken.uid);
-                // if (userRecord.customClaims?.role !== 'admin') { ... }
+                // TODO: Add custom claims verification for admin role
+                // if (!decodedToken.admin) {
+                //     return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+                // }
             } catch (authError) {
                 console.error("Admin token verification failed:", authError);
                 return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -41,10 +60,14 @@ export async function POST(req: NextRequest) {
         // 2. Delete from Firebase Authentication
         try {
             await adminAuth.deleteUser(uid);
-            console.log(`[DeleteUser] Successfully deleted user from Auth: ${uid}`);
+            if (process.env.NODE_ENV === 'development') {
+                console.log(`[DeleteUser] Successfully deleted user from Auth: ${uid}`);
+            }
         } catch (authDeleteError: any) {
             if (authDeleteError.code === 'auth/user-not-found') {
-                console.log(`[DeleteUser] User not found in Auth (UID: ${uid}), skipping.`);
+                if (process.env.NODE_ENV === 'development') {
+                    console.log(`[DeleteUser] User not found in Auth (UID: ${uid}), skipping.`);
+                }
             } else {
                 console.error("[DeleteUser] Failed to delete user from Auth:", authDeleteError);
                 // We proceed to try delete from Firestore even if Auth fails (maybe already deleted)
@@ -56,7 +79,9 @@ export async function POST(req: NextRequest) {
         try {
             // Delete from 'users' collection
             await adminDb.collection('users').doc(uid).delete();
-            console.log(`[DeleteUser] Deleted from 'users' collection: ${uid}`);
+            if (process.env.NODE_ENV === 'development') {
+                console.log(`[DeleteUser] Deleted from 'users' collection: ${uid}`);
+            }
 
             // We can also try to find where else the user might be stored
             // The client logic handles the specific hierarchy deletion:
