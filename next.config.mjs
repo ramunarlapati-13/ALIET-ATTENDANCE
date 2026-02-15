@@ -28,7 +28,7 @@ const nextConfig = {
     experimental: {
         optimizePackageImports: ['lucide-react', 'recharts', 'date-fns'],
     },
-    // SECURITY: Add security headers
+    // SECURITY: Add security headers (excluding deprecated X-XSS-Protection)
     async headers() {
         return [
             {
@@ -51,17 +51,19 @@ const nextConfig = {
                         value: 'nosniff'
                     },
                     {
-                        key: 'X-XSS-Protection',
-                        value: '1; mode=block'
-                    },
-                    {
                         key: 'Referrer-Policy',
                         value: 'strict-origin-when-cross-origin'
                     },
                     {
                         key: 'Permissions-Policy',
                         value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()'
-                    }
+                    },
+                    // Note: Content-Security-Policy should be configured based on app needs
+                    // Example CSP for future implementation:
+                    // {
+                    //     key: 'Content-Security-Policy',
+                    //     value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
+                    // }
                 ]
             }
         ];

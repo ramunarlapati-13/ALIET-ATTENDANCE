@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth } from '@/lib/firebase/admin';
 import { updatePasswordRequestSchema } from '@/lib/validation/schemas';
+import { isAdminEmail } from '@/lib/security/admin';
 import { z } from 'zod';
 
 export async function POST(req: NextRequest) {
@@ -48,13 +49,8 @@ export async function POST(req: NextRequest) {
         try {
             const decodedToken = await adminAuth.verifyIdToken(adminToken);
             
-            // SECURITY: Verify admin access
-            // Check if user email is in admin list
-            const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAILS
-                ? process.env.NEXT_PUBLIC_ADMIN_EMAILS.split(',').map(e => e.trim())
-                : ['zestacademyonline@gmail.com', 'ramunarlapati27@gmail.com'];
-            
-            if (!decodedToken.email || !adminEmails.includes(decodedToken.email)) {
+            // SECURITY: Verify admin access using centralized utility
+            if (!isAdminEmail(decodedToken.email)) {
                 return NextResponse.json(
                     { error: 'Forbidden: Admin access required' },
                     { status: 403 }
