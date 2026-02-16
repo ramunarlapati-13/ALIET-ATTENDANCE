@@ -27,7 +27,6 @@ export default function AttendancePage() {
     }, [currentUser]);
     const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
     const [topic, setTopic] = useState('');
-    const [topic, setTopic] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
 
