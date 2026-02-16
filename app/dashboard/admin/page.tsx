@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { collection, query, where, onSnapshot, Unsubscribe } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, Unsubscribe, doc as firestoreDoc, updateDoc, setDoc, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -45,7 +45,7 @@ interface Faculty {
 const BRANCHES = ['CIVIL', 'EEE', 'MECH', 'ECE', 'CSE', 'IT', 'CSM', 'CSD'];
 
 export default function AdminDashboard() {
-    const { currentUser, signOut } = useAuth();
+    const { currentUser, firebaseUser, signOut } = useAuth();
     const router = useRouter();
     // Using a map to manage students by branch for easier updates
     const [studentsMap, setStudentsMap] = useState<Record<string, Student[]>>({});
@@ -209,10 +209,10 @@ export default function AdminDashboard() {
         if (!confirm(`Are you sure you want to approve ${user.name}? This will grant them access to the dashboard.`)) return;
 
         try {
-            const { doc: docImport, updateDoc, setDoc, serverTimestamp } = await import('firebase/firestore');
+
 
             // 1. Update User Document
-            const userRef = docImport(db, 'users', user.uid);
+            const userRef = firestoreDoc(db, 'users', user.uid);
             await updateDoc(userRef, {
                 isApproved: true,
                 updatedAt: serverTimestamp()
@@ -223,11 +223,11 @@ export default function AdminDashboard() {
             if (user.role === 'faculty' || user.role === 'hod') {
                 const facultyUser = user as Faculty;
                 if (facultyUser.department) {
-                    const branchRef = docImport(db, 'admin', 'faculty', 'branch', facultyUser.department);
+                    const branchRef = firestoreDoc(db, 'admin', 'faculty', 'branch', facultyUser.department);
                     // Ensure branch doc exists
                     await setDoc(branchRef, { name: facultyUser.department }, { merge: true });
 
-                    const memberRef = docImport(branchRef, 'faculty_members', user.uid);
+                    const memberRef = firestoreDoc(collection(branchRef, 'faculty_members'), user.uid);
                     await setDoc(memberRef, {
                         ...facultyUser,
                         isApproved: true,
@@ -242,7 +242,7 @@ export default function AdminDashboard() {
             alert(`Approved ${user.name}. An email notification has been sent to ${user.email}.`);
 
             // 4. Log the action
-            const { addDoc, collection } = await import('firebase/firestore');
+
             await addDoc(collection(db, 'admin/logs/approvals'), {
                 adminId: currentUser?.uid,
                 adminName: currentUser?.name,
@@ -269,14 +269,12 @@ export default function AdminDashboard() {
 
         setEditLoading(true);
         try {
-            const { doc: docImport, updateDoc, setDoc, serverTimestamp } = await import('firebase/firestore');
+
 
             // Handle Password Update if changed
             if (editFormData.password && editFormData.password !== editingUser.password) {
                 try {
-                    const { getAuth } = await import('firebase/auth');
-                    const auth = getAuth();
-                    const token = await auth.currentUser?.getIdToken();
+                    const token = await firebaseUser?.getIdToken();
 
                     const response = await fetch('/api/admin/update-password', {
                         method: 'POST',
@@ -299,7 +297,7 @@ export default function AdminDashboard() {
             }
 
             // Update main users collection
-            const userRef = docImport(db, 'users', editingUser.uid);
+            const userRef = firestoreDoc(db, 'users', editingUser.uid);
             await updateDoc(userRef, {
                 ...editFormData,
                 updatedAt: serverTimestamp()
@@ -307,7 +305,7 @@ export default function AdminDashboard() {
 
             // Update hierarchical structure based on role
             const isStudent = 'registrationNumber' in editingUser;
-            const { deleteDoc } = await import('firebase/firestore');
+
 
             if (isStudent) {
                 const oldStudent = editingUser as Student;
@@ -321,13 +319,13 @@ export default function AdminDashboard() {
 
                 if (locationChanged && oldStudent.branch && oldStudent.year && oldStudent.section) {
                     // Delete from old path
-                    const oldRef = docImport(db, 'admin', 'students', oldStudent.branch, String(oldStudent.year), oldStudent.section, editingUser.uid);
+                    const oldRef = firestoreDoc(db, 'admin', 'students', oldStudent.branch, String(oldStudent.year), oldStudent.section, editingUser.uid);
                     await deleteDoc(oldRef);
                 }
 
                 // Update/Create in new path
                 if (newStudent.branch && newStudent.year && newStudent.section) {
-                    const hierarchyRef = docImport(db, 'admin', 'students', newStudent.branch, String(newStudent.year), newStudent.section, editingUser.uid);
+                    const hierarchyRef = firestoreDoc(db, 'admin', 'students', newStudent.branch, String(newStudent.year), newStudent.section, editingUser.uid);
                     await setDoc(hierarchyRef, {
                         ...editFormData,
                         updatedAt: serverTimestamp()
@@ -342,18 +340,18 @@ export default function AdminDashboard() {
 
                 if (locationChanged && oldFaculty.department) {
                     // Delete from old path
-                    const oldBranchRef = docImport(db, 'admin', 'faculty', 'branch', oldFaculty.department);
-                    const oldMemberRef = docImport(oldBranchRef, 'faculty_members', editingUser.uid);
+                    const oldBranchRef = firestoreDoc(db, 'admin', 'faculty', 'branch', oldFaculty.department);
+                    const oldMemberRef = firestoreDoc(collection(oldBranchRef, 'faculty_members'), editingUser.uid);
                     await deleteDoc(oldMemberRef);
                 }
 
                 // Update/Create in new path
                 if (newFaculty.department) {
-                    const branchRef = docImport(db, 'admin', 'faculty', 'branch', newFaculty.department);
+                    const branchRef = firestoreDoc(db, 'admin', 'faculty', 'branch', newFaculty.department);
                     // Ensure branch doc exists
                     await setDoc(branchRef, { name: newFaculty.department }, { merge: true });
 
-                    const memberRef = docImport(branchRef, 'faculty_members', editingUser.uid);
+                    const memberRef = firestoreDoc(collection(branchRef, 'faculty_members'), editingUser.uid);
                     await setDoc(memberRef, {
                         ...editFormData,
                         updatedAt: serverTimestamp()
@@ -385,9 +383,7 @@ export default function AdminDashboard() {
             // 1. Call ID Deletion API (Auth + Users Collection)
             if (currentUser) {
                 try {
-                    const { getAuth } = await import('firebase/auth');
-                    const auth = getAuth();
-                    const token = await auth.currentUser?.getIdToken();
+                    const token = await firebaseUser?.getIdToken();
 
                     const response = await fetch('/api/admin/delete-user', {
                         method: 'POST',
@@ -425,24 +421,24 @@ export default function AdminDashboard() {
             setDeleteModalOpen(false);
             // ---------------------------------------------------------
 
-            const { doc: docImport, deleteDoc } = await import('firebase/firestore');
+
 
             // Delete from main users collection (Redundant if API worked, but safe)
-            const userRef = docImport(db, 'users', userToDelete.uid);
+            const userRef = firestoreDoc(db, 'users', userToDelete.uid);
             await deleteDoc(userRef).catch(e => console.log("Doc maybe already deleted by API", e));
 
             // Delete from hierarchy based on role
             if (isStudent) {
                 const student = userToDelete as Student;
                 if (student.branch && student.year && student.section) {
-                    const hierarchyRef = docImport(db, 'admin', 'students', student.branch, String(student.year), student.section, userToDelete.uid);
+                    const hierarchyRef = firestoreDoc(db, 'admin', 'students', student.branch, String(student.year), student.section, userToDelete.uid);
                     await deleteDoc(hierarchyRef);
                 }
             } else {
                 const faculty = userToDelete as Faculty;
                 if (faculty.department) {
-                    const branchRef = docImport(db, 'admin', 'faculty', 'branch', faculty.department);
-                    const memberRef = docImport(branchRef, 'faculty_members', userToDelete.uid);
+                    const branchRef = firestoreDoc(db, 'admin', 'faculty', 'branch', faculty.department);
+                    const memberRef = firestoreDoc(collection(branchRef, 'faculty_members'), userToDelete.uid);
                     await deleteDoc(memberRef);
                 }
             }

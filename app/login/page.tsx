@@ -218,14 +218,26 @@ export default function LoginPage() {
 
             // For student login, we'll use registration number as email format
             const email = `${studentForm.registrationNumber}@aliet.ac.in`.toLowerCase();
-            await signIn(email, studentForm.password);
+            const userCred = await signIn(email, studentForm.password);
+
+            // Check if this user is actually a faculty
+            const userDoc = await getDocs(query(collection(db, 'users'), where('uid', '==', userCred.user.uid)));
+            let userRole = 'student';
+            if (!userDoc.empty) {
+                userRole = userDoc.docs[0].data().role;
+            }
+
+            if (userRole === 'faculty' || userRole === 'hod') {
+                router.push('/dashboard');
+                return;
+            }
 
             // Log activity
             try {
                 await addDoc(collection(db, 'admin/logs/logins'), {
                     email,
-                    role: 'student',
-                    name: studentName || 'Unknown Student',
+                    role: userRole,
+                    name: studentName || 'Unknown',
                     timestamp: new Date()
                 });
             } catch (e) {
@@ -247,7 +259,25 @@ export default function LoginPage() {
                 // Ignore if fails
             }
 
+            // Check if it's a Faculty ID trying to login as student
+            let existsInFaculty = null;
+            try {
+                const facultyModule = await import('@/data/faculty.json');
+                const facultyData = facultyModule.default as any;
+                existsInFaculty = facultyData[regNo];
+            } catch (e) {
+                // Ignore
+            }
+
             const isAuthError = err.code?.includes('auth/user-not-found') || err.message?.includes('auth/user-not-found') || err.message?.includes('auth/invalid-credential');
+
+            if (isAuthError && existsInFaculty) {
+                // Redirect to Staff Login
+                setMode('institutional');
+                setInstitutionalForm(prev => ({ ...prev, email: regNo }));
+                setError("Detected Faculty Credential. Please use Staff Login.");
+                return;
+            }
 
             if (isAuthError && existsInRegistry) {
                 // Auto-register logic

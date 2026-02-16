@@ -18,6 +18,9 @@ export default function AttendancePage() {
     const [selectedBranch, setSelectedBranch] = useState(currentUser?.department || 'EEE');
     const [selectedYear, setSelectedYear] = useState(2);
     const [selectedSection, setSelectedSection] = useState('A');
+    const [selectedSemester, setSelectedSemester] = useState('1');
+    const [selectedSubject, setSelectedSubject] = useState('');
+    const [subjectsList, setSubjectsList] = useState<string[]>([]);
 
     // Update default branch when currentUser loads
     useEffect(() => {
@@ -25,6 +28,27 @@ export default function AttendancePage() {
             setSelectedBranch(currentUser.department);
         }
     }, [currentUser]);
+
+    // Fetch Subjects
+    useEffect(() => {
+        const fetchSubjects = async () => {
+            if (!selectedBranch || !selectedYear || !selectedSemester) return;
+            const docId = `${selectedBranch}_${selectedYear}_${selectedSemester}`; // e.g. EEE_2_1
+            try {
+                const docRef = doc(db, 'class_subjects', docId);
+                const snap = await getDoc(docRef);
+                if (snap.exists()) {
+                    setSubjectsList(snap.data().subjects || []);
+                } else {
+                    setSubjectsList([]);
+                }
+            } catch (error) {
+                console.error("Error fetching subjects:", error);
+                setSubjectsList([]);
+            }
+        };
+        fetchSubjects();
+    }, [selectedBranch, selectedYear, selectedSemester]);
     const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
     const [topic, setTopic] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,10 +77,17 @@ export default function AttendancePage() {
         }
     }, [currentUser]);
 
-    // Check for existing attendance when date or filters change
     useEffect(() => {
         const checkExisting = async () => {
-            const docId = `${attendanceDate}_${selectedBranch}_${selectedYear}_${selectedSection}`;
+            if (!selectedSubject) {
+                setAttendance({});
+                setTopic('');
+                setIsEditMode(false);
+                setEditingDocId(null);
+                setEditingTimestamp(null);
+                return;
+            }
+            const docId = `${attendanceDate}_${selectedBranch}_${selectedYear}_${selectedSemester}_${selectedSection}_${selectedSubject}`;
             try {
                 const docRef = doc(db, 'attendance', docId);
                 const docSnap = await getDoc(docRef);
@@ -88,7 +119,7 @@ export default function AttendancePage() {
         };
 
         checkExisting();
-    }, [attendanceDate, selectedBranch, selectedYear, selectedSection]);
+    }, [attendanceDate, selectedBranch, selectedYear, selectedSemester, selectedSubject, selectedSection]);
 
     const loadRecentSubmissions = async () => {
         if (!currentUser) {
@@ -168,6 +199,8 @@ export default function AttendancePage() {
                 // Set filters to match the record
                 setSelectedBranch(data.branch);
                 setSelectedYear(data.year);
+                setSelectedSemester(data.semester || '1');
+                setSelectedSubject(data.subject || '');
                 setSelectedSection(data.section);
                 setAttendanceDate(data.date);
 
@@ -339,6 +372,10 @@ export default function AttendancePage() {
 
     const finalizeSubmission = async (defaultForUnmarked: 'Present' | 'Absent' = 'Present') => {
         if (!currentUser) return;
+        if (!selectedSubject) {
+            alert('Please select a subject first!');
+            return;
+        }
 
         // Check edit permission if in edit mode
         if (isEditMode && editingTimestamp && !canEdit(editingTimestamp)) {
@@ -361,7 +398,7 @@ export default function AttendancePage() {
                 else absentCount++;
             });
 
-            const docId = `${attendanceDate}_${selectedBranch}_${selectedYear}_${selectedSection}`;
+            const docId = `${attendanceDate}_${selectedBranch}_${selectedYear}_${selectedSemester}_${selectedSection}_${selectedSubject}`;
             const attendanceRef = doc(db, 'attendance', docId);
 
             const facultyId = currentUser.uid || currentUser.email || 'unknown';
@@ -370,7 +407,9 @@ export default function AttendancePage() {
                 date: attendanceDate,
                 branch: selectedBranch,
                 year: selectedYear,
+                semester: selectedSemester,
                 section: selectedSection,
+                subject: selectedSubject,
                 facultyId: facultyId,
                 facultyName: currentUser.name || 'Faculty',
                 records: finalRecords,
@@ -388,7 +427,7 @@ export default function AttendancePage() {
             await setDoc(attendanceRef, attendanceData);
 
             // 2. Save to Realtime Database (for live/current data)
-            const rtdbPath = `attendance/${attendanceDate}/${selectedBranch}/${selectedYear}/${selectedSection}`;
+            const rtdbPath = `attendance/${attendanceDate}/${selectedBranch}/${selectedYear}/${selectedSemester}/${selectedSection}/${selectedSubject}`;
             const rtdbRef = ref(realtimeDb, rtdbPath);
 
             await setDb(rtdbRef, {
@@ -511,10 +550,15 @@ export default function AttendancePage() {
             {/* Header / Filters */}
             <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-                    <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <UserCheck className="w-6 h-6 md:w-8 md:h-8 text-primary-600" />
-                        Mark Attendance
-                    </h1>
+                    <div>
+                        <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <UserCheck className="w-6 h-6 md:w-8 md:h-8 text-primary-600" />
+                            Mark Attendance
+                        </h1>
+                        <a href="/dashboard/faculty/reports" className="text-xs md:text-sm text-primary-600 hover:text-primary-800 dark:hover:text-primary-400 font-medium ml-8 md:ml-10 flex items-center gap-1 transition-colors">
+                            <span className="underline">View Detailed Reports (CC/CA)</span>
+                        </a>
+                    </div>
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-sm text-gray-500 w-full md:w-auto">
                         <span className="hidden sm:inline">Date:</span>
                         <input
@@ -561,7 +605,37 @@ export default function AttendancePage() {
                         <option value="B">Section B</option>
                         <option value="C">Section C</option>
                     </select>
+
+                    <select
+                        value={selectedSemester}
+                        onChange={(e) => setSelectedSemester(e.target.value)}
+                        className="input-field"
+                    >
+                        <option value="1">Semester 1</option>
+                        <option value="2">Semester 2</option>
+                    </select>
+
+                    <select
+                        value={selectedSubject}
+                        onChange={(e) => setSelectedSubject(e.target.value)}
+                        className={`input-field font-medium ${!selectedSubject ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/20' : ''}`}
+                    >
+                        <option value="">-- Select Subject --</option>
+                        {subjectsList.map(sub => (
+                            <option key={sub} value={sub}>{sub}</option>
+                        ))}
+                    </select>
                 </div>
+
+                {subjectsList.length === 0 && (
+                    <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-sm flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4" />
+                        No subjects found for this configuration.
+                        {currentUser?.role === 'admin' || currentUser?.role === 'hod' ? (
+                            <a href="/dashboard/manage-subjects" className="underline font-bold ml-1">Configure Subjects</a>
+                        ) : ' Contact HOD.'}
+                    </div>
+                )}
 
                 {/* Topic Input */}
                 <div className="mt-4">
@@ -637,7 +711,7 @@ export default function AttendancePage() {
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-3 mb-1">
                                                     <span className="font-semibold text-gray-900 dark:text-white">
-                                                        {submission.branch} - Year {submission.year} - Section {submission.section}
+                                                        {submission.subject} ({submission.branch}-{submission.year}-{submission.section})
                                                     </span>
                                                     <span className="text-sm text-gray-500">
                                                         {submission.date}

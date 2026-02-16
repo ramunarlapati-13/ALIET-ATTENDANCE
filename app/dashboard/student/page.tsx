@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 
 import { db } from '@/lib/firebase/config';
-import { collection, query, where, getDocs, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, limit, onSnapshot, doc, getDoc } from 'firebase/firestore';
 
 export default function StudentDashboard() {
     const { currentUser, signOut } = useAuth();
@@ -75,8 +75,8 @@ export default function StudentDashboard() {
             const classConfigId = `${currentUser.branch}_${currentUser.year}`;
 
             try {
-                // Dynamic imports
-                const { doc, getDoc, collection, query, where, getDocs } = await import('firebase/firestore');
+                // Dynamic imports removed - using static imports
+
 
                 // 1. Fetch Subject Count
                 const configRef = doc(db, 'class_subjects', classConfigId);

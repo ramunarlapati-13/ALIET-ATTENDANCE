@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
     User as FirebaseUser,
+    UserCredential,
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     signInWithPopup,
@@ -21,7 +22,7 @@ interface AuthContextType {
     currentUser: User | null;
     firebaseUser: FirebaseUser | null;
     loading: boolean;
-    signIn: (email: string, password: string) => Promise<void>;
+    signIn: (email: string, password: string) => Promise<UserCredential>;
     signUp: (email: string, password: string, userData: Partial<User>) => Promise<void>;
     signInWithGoogle: () => Promise<{ isNewUser: boolean }>;
     signOut: () => Promise<void>;
@@ -139,7 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const signIn = async (email: string, password: string) => {
-        await signInWithEmailAndPassword(auth, email, password);
+        return await signInWithEmailAndPassword(auth, email, password);
     };
 
     const signUp = async (
