@@ -72,13 +72,14 @@ export const usePushNotifications = () => {
         }, { merge: true });
 
         // Also save to branch-specific collection for easier targeting by admins
-        if (currentUser.role === 'student' && currentUser.branch) {
+        // Also save to branch-specific collection for easier targeting by admins
+        if (currentUser) {
             const tokenRef = doc(db, 'admin', 'notifications', 'tokens', token);
             await setDoc(tokenRef, {
                 token,
                 uid: currentUser.uid,
-                role: currentUser.role,
-                branch: currentUser.branch,
+                role: currentUser.role || 'unknown',
+                branch: currentUser.branch || 'GENERAL',
                 year: currentUser.year || 0,
                 section: currentUser.section || '',
                 updatedAt: new Date()

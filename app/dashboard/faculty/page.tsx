@@ -14,10 +14,13 @@ import { db } from '@/lib/firebase/config';
 import { useState, useEffect } from 'react';
 import ThemeToggleFloating from '@/components/ui/ThemeToggleFloating';
 import AnnouncementTicker from '@/components/announcements/AnnouncementTicker';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 export default function FacultyDashboard() {
     const { currentUser, loading, signOut } = useAuth();
     const router = useRouter();
+    const { requestPermission, permission, isSupported } = usePushNotifications(); // Hook usage
+    const [isNotificationOpen, setIsNotificationOpen] = useState(false); // State
 
     const handleLogout = async () => {
         if (confirm('Are you sure you want to logout?')) {
@@ -48,13 +51,67 @@ export default function FacultyDashboard() {
                             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                                 {currentUser.role === 'hod' ? 'HOD Dashboard' : 'Faculty Dashboard'}
                             </h1>
-                            <button
-                                onClick={handleLogout}
-                                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-sm"
-                            >
-                                <LogOut className="w-4 h-4" />
-                                <span className="hidden sm:inline">Logout</span>
-                            </button>
+                            <div className="flex items-center gap-4">
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors relative"
+                                    >
+                                        <div className="w-5 h-5 text-gray-600 dark:text-gray-400">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-bell"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+                                        </div>
+                                        {permission === 'default' && isSupported && (
+                                            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-gray-800"></span>
+                                        )}
+                                    </button>
+
+                                    {/* Notification Dropdown */}
+                                    {isNotificationOpen && (
+                                        <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                            <div className="p-3 border-b border-gray-100 dark:border-gray-700 font-semibold text-gray-900 dark:text-white flex justify-between items-center">
+                                                <span>Notifications</span>
+                                                <button onClick={() => setIsNotificationOpen(false)} className="text-gray-400 hover:text-gray-600">
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                            <div className="p-2 max-h-[300px] overflow-y-auto">
+                                                {permission === 'default' && isSupported ? (
+                                                    <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-center">
+                                                        <div className="mx-auto w-10 h-10 bg-indigo-100 dark:bg-indigo-800 rounded-full flex items-center justify-center mb-2">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-indigo-600 dark:text-indigo-300"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+                                                        </div>
+                                                        <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">Enable Notifications</p>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                                                            Don't miss out on important updates.
+                                                        </p>
+                                                        <button
+                                                            onClick={() => {
+                                                                requestPermission();
+                                                                setIsNotificationOpen(false);
+                                                            }}
+                                                            className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors"
+                                                        >
+                                                            Turn On
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 mb-2 opacity-20"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+                                                        <p className="text-xs">No new notifications</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={handleLogout}
+                                    className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-sm"
+                                >
+                                    <LogOut className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Logout</span>
+                                </button>
+                            </div>
                         </div>
 
                         {/* Profile Card */}

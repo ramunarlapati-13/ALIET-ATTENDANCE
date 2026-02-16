@@ -101,23 +101,58 @@ export default function AnnouncementManager() {
                 });
 
                 if (sendPush) {
-                    // Trigger Push Notification Logic
-                    // Since we are client-side only without admin SDK, we'll save a request to a collection 
-                    // that a backend function could listen to.
+                    // Trigger Push Notification Logic via API
                     try {
-                        await addDoc(collection(db, 'admin', 'notifications', 'queue'), {
+                        const filters: any = {};
+
+                        // Set audience filter (role)
+                        if (audience !== 'all') {
+                            filters.role = audience;
+                        }
+
+                        // Set department filter (branch)
+                        if (tier === 'departmental' && department) {
+                            filters.branch = department;
+                        }
+
+                        // Call the notification API
+                        const response = await fetch('/api/send-notification', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                title,
+                                body: content,
+                                filters,
+                                // topic: 'all' // Optional: if we implemented topic subscription
+                            }),
+                        });
+
+                        const result = await response.json();
+
+                        if (response.ok) {
+                            console.log("Push notification sent successfully", result);
+                            alert(`Announcement posted! Sent to ${result.recipientCount || 0} devices.`);
+                        } else {
+                            console.error("Failed to send notification via API", result);
+                            alert("Announcement posted, but failed to send notification: " + (result.error || "Unknown error"));
+                        }
+
+                        // Optional: Log execution to admin collection for record keeping (not queueing)
+                        await addDoc(collection(db, 'admin', 'notifications', 'logs'), {
                             announcementId: docRef.id,
                             title,
-                            body: content,
                             audience,
                             department,
-                            status: 'pending',
+                            status: response.ok ? 'sent' : 'failed',
+                            result,
                             createdAt: serverTimestamp()
                         });
-                        console.log("Push notification queued for backend processing.");
-                        alert("Announcement posted! Notification queued (requires backend setup).");
-                    } catch (err) {
-                        console.error("Failed to queue notification", err);
+
+                    } catch (err: any) {
+                        console.error("Failed to send notification", err);
+                        alert("Announcement posted, but notification failed: " + err.message);
                     }
                 }
             }
