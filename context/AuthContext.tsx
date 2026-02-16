@@ -38,7 +38,10 @@ export function useAuth() {
     return context;
 }
 
-export const ADMIN_EMAILS = ['zestacademyonline@gmail.com', 'ramunarlapati27@gmail.com'];
+export const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
+    .split(',')
+    .map(email => email.trim())
+    .filter(email => email.length > 0);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
