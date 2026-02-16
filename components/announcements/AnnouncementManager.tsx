@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { db } from '@/lib/firebase/config';
 import {
+    db,
     collection,
     addDoc,
     query,
@@ -13,7 +13,7 @@ import {
     updateDoc,
     serverTimestamp,
     Timestamp
-} from 'firebase/firestore';
+} from '@/lib/firebase/config';
 import { Announcement, AnnouncementAudience, AnnouncementTier } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { Megaphone, Trash2, Plus, X, Globe, Building, Users, Edit } from 'lucide-react';

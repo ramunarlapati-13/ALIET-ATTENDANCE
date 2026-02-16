@@ -2,8 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { db } from '@/lib/firebase/config';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import {
+    db,
+    doc,
+    getDoc,
+    collection,
+    query,
+    where,
+    getDocs
+} from '@/lib/firebase/config';
 import { detectBranchInfo } from '@/utils/branchDetector';
 import { LayoutList, BookOpen, AlertCircle, FileText, Calculator } from 'lucide-react';
 

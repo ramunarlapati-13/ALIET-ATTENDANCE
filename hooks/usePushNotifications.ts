@@ -1,7 +1,15 @@
 import { useState, useEffect } from 'react';
-import { getMessaging, getToken, onMessage } from 'firebase/messaging';
-import { doc, updateDoc, arrayUnion, setDoc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
+import {
+    db,
+    doc,
+    updateDoc,
+    arrayUnion,
+    setDoc,
+    getDoc,
+    getMessaging,
+    getToken,
+    onMessage
+} from '@/lib/firebase/config';
 import { useAuth } from '@/context/AuthContext';
 
 export const usePushNotifications = () => {
@@ -39,8 +47,7 @@ export const usePushNotifications = () => {
         if (!currentUser) return;
 
         try {
-            // Lazy load messaging to avoid server-side issues
-            const { getMessaging, getToken } = await import('firebase/messaging');
+            // messaging is initialized in config.ts, but we can also use getMessaging()
             const messaging = getMessaging();
 
             // Get VAPID Key from environment or hardcode
@@ -72,7 +79,6 @@ export const usePushNotifications = () => {
         }, { merge: true });
 
         // Also save to branch-specific collection for easier targeting by admins
-        // Also save to branch-specific collection for easier targeting by admins
         if (currentUser) {
             const tokenRef = doc(db, 'admin', 'notifications', 'tokens', token);
             await setDoc(tokenRef, {
@@ -90,23 +96,19 @@ export const usePushNotifications = () => {
     // Foreground listener
     useEffect(() => {
         if (permission === 'granted') {
-            import('firebase/messaging').then(({ getMessaging, onMessage }) => {
-                const messaging = getMessaging();
-                onMessage(messaging, (payload) => {
-                    console.log('Message received. ', payload);
-                    // Standard browser notification for foreground if not focused, or just as a fallback
-                    const { title, body, image } = payload.notification || {};
-                    if (title) {
-                        // Ask the browser to show a notification even if in foreground
-                        // Note: Browsers might block this if the tab is strictly focused, but it's the requested "normal app notification" behavior
-                        new Notification(title, {
-                            body,
-                            icon: '/logo.png',
-                            // image property is not fully supported in standard Notification API type in all TS versions
-                        });
-                    }
-                });
-            }).catch(err => console.error("Messaging listener error", err));
+            const messagingValue = getMessaging();
+            onMessage(messagingValue, (payload: any) => {
+                console.log('Message received. ', payload);
+                // Standard browser notification for foreground if not focused, or just as a fallback
+                const { title, body, image } = payload.notification || {};
+                if (title) {
+                    // Ask the browser to show a notification even if in foreground
+                    new Notification(title, {
+                        body,
+                        icon: '/logo.png',
+                    });
+                }
+            });
         }
     }, [permission]);
 

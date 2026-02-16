@@ -1,8 +1,14 @@
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { db } from '@/lib/firebase/config';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import {
+    db,
+    collection,
+    query,
+    where,
+    getDocs,
+    orderBy
+} from '@/lib/firebase/config';
 import studentData from '@/data/students.json';
 import {
     BarChart,

@@ -9,8 +9,16 @@ import {
 import studentData from '@/data/students.json';
 import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import { Component as PencilLoader } from '@/components/ui/loader-1';
-import { collection, query, where, getDocs, limit, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
+import {
+    db,
+    collection,
+    query,
+    where,
+    getDocs,
+    limit,
+    orderBy,
+    onSnapshot
+} from '@/lib/firebase/config';
 import { useState, useEffect } from 'react';
 import ThemeToggleFloating from '@/components/ui/ThemeToggleFloating';
 import AnnouncementTicker from '@/components/announcements/AnnouncementTicker';
@@ -255,6 +263,7 @@ export default function FacultyDashboard() {
 
 
 function RecentAttendanceList({ currentUser }: { currentUser: any }) {
+    const router = useRouter();
     const [recentAttendance, setRecentAttendance] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedRecord, setSelectedRecord] = useState<any>(null);
@@ -339,7 +348,7 @@ function RecentAttendanceList({ currentUser }: { currentUser: any }) {
                 </div>
             ))}
             <button
-                onClick={() => window.location.href = '/dashboard/faculty/attendance'}
+                onClick={() => router.push('/dashboard/faculty/attendance')}
                 className="w-full text-center text-xs text-blue-600 hover:text-blue-700 font-medium py-2"
             >
                 View All Records

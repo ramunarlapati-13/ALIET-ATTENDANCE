@@ -7,9 +7,24 @@ import { UserCheck, UserX, Save, Filter, AlertTriangle, X, Edit2, Clock, Refresh
 import { Skeleton, TableSkeleton } from '@/components/ui/Skeleton';
 
 import { useAuth } from '@/context/AuthContext';
-import { db, realtimeDb } from '@/lib/firebase/config';
-import { doc, setDoc, collection, addDoc, serverTimestamp, getDoc, query, where, getDocs, orderBy, limit, Timestamp } from 'firebase/firestore';
-import { ref, set as setDb } from 'firebase/database';
+import {
+    db,
+    realtimeDb,
+    doc,
+    setDoc,
+    collection,
+    addDoc,
+    serverTimestamp,
+    getDoc,
+    query,
+    where,
+    getDocs,
+    orderBy,
+    limit,
+    Timestamp,
+    ref,
+    setDb
+} from '@/lib/firebase/config';
 
 export default function AttendancePage() {
     const { currentUser } = useAuth();
@@ -21,6 +36,7 @@ export default function AttendancePage() {
     const [selectedSemester, setSelectedSemester] = useState('1');
     const [selectedSubject, setSelectedSubject] = useState('');
     const [subjectsList, setSubjectsList] = useState<string[]>([]);
+    const [subjectAssignments, setSubjectAssignments] = useState<Record<string, { uid: string, name: string }>>({});
 
     // Update default branch when currentUser loads
     useEffect(() => {
@@ -38,7 +54,9 @@ export default function AttendancePage() {
                 const docRef = doc(db, 'class_subjects', docId);
                 const snap = await getDoc(docRef);
                 if (snap.exists()) {
-                    setSubjectsList(snap.data().subjects || []);
+                    const data = snap.data();
+                    setSubjectsList(data.subjects || []);
+                    setSubjectAssignments(data.assignments || {});
                 } else {
                     setSubjectsList([]);
                 }
@@ -622,7 +640,9 @@ export default function AttendancePage() {
                     >
                         <option value="">-- Select Subject --</option>
                         {subjectsList.map(sub => (
-                            <option key={sub} value={sub}>{sub}</option>
+                            <option key={sub} value={sub}>
+                                {sub}{subjectAssignments[sub] ? ` (${subjectAssignments[sub].name})` : ''}
+                            </option>
                         ))}
                     </select>
                 </div>
@@ -634,6 +654,27 @@ export default function AttendancePage() {
                         {currentUser?.role === 'admin' || currentUser?.role === 'hod' ? (
                             <a href="/dashboard/manage-subjects" className="underline font-bold ml-1">Configure Subjects</a>
                         ) : ' Contact HOD.'}
+                    </div>
+                )}
+
+                {/* Assignment Info */}
+                {selectedSubject && subjectAssignments[selectedSubject] && (
+                    <div className={`mt-4 p-3 rounded-lg text-sm border flex items-center gap-2 ${subjectAssignments[selectedSubject].uid === currentUser?.uid
+                        ? 'bg-green-50 border-green-200 text-green-800'
+                        : 'bg-purple-50 border-purple-200 text-purple-800'
+                        }`}>
+                        <div className="flex-1">
+                            <span className="font-semibold block text-xs uppercase tracking-wider opacity-70">Subject Assigned Faculty</span>
+                            <span className="font-medium text-lg">{subjectAssignments[selectedSubject].name}</span>
+                            {subjectAssignments[selectedSubject].uid !== currentUser?.uid && (
+                                <span className="block text-xs mt-1 opacity-80">
+                                    (You are taking attendance as {currentUser?.name})
+                                </span>
+                            )}
+                        </div>
+                        {subjectAssignments[selectedSubject].uid !== currentUser?.uid && (
+                            <Users className="w-5 h-5 opacity-50" />
+                        )}
                     </div>
                 )}
 

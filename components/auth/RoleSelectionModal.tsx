@@ -6,8 +6,13 @@ import { UserRole } from '@/types';
 import { X } from 'lucide-react';
 import { detectBranchInfo, detectFacultyInfo } from '@/utils/branchDetector';
 import studentData from '@/data/students.json';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
+import {
+    db,
+    collection,
+    query,
+    where,
+    getDocs
+} from '@/lib/firebase/config';
 
 interface RoleSelectionModalProps {
     isOpen: boolean;

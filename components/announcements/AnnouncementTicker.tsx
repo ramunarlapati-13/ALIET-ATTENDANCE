@@ -1,8 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, orderBy, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
+import {
+    db,
+    collection,
+    query,
+    where,
+    onSnapshot,
+    orderBy,
+    Timestamp
+} from '@/lib/firebase/config';
 import { Announcement } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { Megaphone } from 'lucide-react';

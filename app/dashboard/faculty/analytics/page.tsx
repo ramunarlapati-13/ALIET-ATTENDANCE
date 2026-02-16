@@ -1,8 +1,15 @@
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { db } from '@/lib/firebase/config';
-import { collection, query, where, getDocs, orderBy, onSnapshot } from 'firebase/firestore';
+import {
+    db,
+    collection,
+    query,
+    where,
+    getDocs,
+    orderBy,
+    onSnapshot
+} from '@/lib/firebase/config';
 import studentData from '@/data/students.json';
 import { detectBranchInfo } from '@/utils/branchDetector';
 import {

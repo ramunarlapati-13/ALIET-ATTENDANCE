@@ -6,9 +6,17 @@ import { useAuth } from '@/context/AuthContext';
 import RoleSelectionModal from '@/components/auth/RoleSelectionModal';
 import { GraduationCap, Building2, Mail, Lock, User, Phone, Quote, X } from 'lucide-react';
 import Image from 'next/image';
-import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase/config';
-import { setPersistence, browserLocalPersistence } from 'firebase/auth';
+import {
+    db,
+    auth,
+    collection,
+    query,
+    where,
+    getDocs,
+    addDoc,
+    setPersistence,
+    browserLocalPersistence
+} from '@/lib/firebase/config';
 import { detectBranchInfo, detectFacultyInfo } from '@/utils/branchDetector';
 import InstallPrompt from '@/components/ui/InstallPrompt';
 

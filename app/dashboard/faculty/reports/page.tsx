@@ -2,8 +2,15 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { db } from '@/lib/firebase/config';
-import { collection, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore';
+import {
+    db,
+    collection,
+    query,
+    where,
+    getDocs,
+    orderBy,
+    Timestamp
+} from '@/lib/firebase/config';
 import { FileSpreadsheet, Download, Filter, Search, Calendar, ChevronDown, Sheet, Table as TableIcon } from 'lucide-react';
 import { detectBranchInfo } from '@/utils/branchDetector';
 import studentData from '@/data/students.json';

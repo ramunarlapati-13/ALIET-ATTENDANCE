@@ -3,9 +3,17 @@
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import { updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider, verifyBeforeUpdateEmail } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase/config';
-import { doc, updateDoc } from 'firebase/firestore';
+import {
+    auth,
+    db,
+    doc,
+    updateDoc,
+    updateEmail,
+    updatePassword,
+    reauthenticateWithCredential,
+    EmailAuthProvider,
+    verifyBeforeUpdateEmail
+} from '@/lib/firebase/config';
 import { User, Mail, Lock, Shield, ArrowLeft, Building2, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 

@@ -6,8 +6,15 @@ import { useAuth } from '@/context/AuthContext';
 import { GraduationCap, User, Phone, Building2, CheckCircle, Lock } from 'lucide-react';
 import { detectBranchInfo } from '@/utils/branchDetector';
 import studentData from '@/data/students.json';
-import { collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
+import {
+    db,
+    collection,
+    query,
+    where,
+    getDocs,
+    doc,
+    setDoc
+} from '@/lib/firebase/config';
 
 export default function StudentRegisterPage() {
     const router = useRouter();

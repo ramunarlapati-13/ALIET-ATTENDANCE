@@ -6,8 +6,16 @@ import { detectBranchInfo } from '@/utils/branchDetector';
 import { Save, LayoutList, Plus, Trash2, Edit2, AlertCircle, CheckCircle, Loader2, FileDown, FileSpreadsheet } from 'lucide-react';
 
 import { useAuth } from '@/context/AuthContext';
-import { db } from '@/lib/firebase/config';
-import { doc, setDoc, collection, addDoc, serverTimestamp, getDoc, getDocs } from 'firebase/firestore';
+import {
+    db,
+    doc,
+    setDoc,
+    collection,
+    addDoc,
+    serverTimestamp,
+    getDoc,
+    getDocs
+} from '@/lib/firebase/config';
 
 // Export Libraries
 import jsPDF from 'jspdf';

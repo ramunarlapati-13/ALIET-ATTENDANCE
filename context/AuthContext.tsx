@@ -2,7 +2,9 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
-    User as FirebaseUser,
+    auth,
+    db,
+    FirebaseUser,
     UserCredential,
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
@@ -12,9 +14,12 @@ import {
     onAuthStateChanged,
     setPersistence,
     browserLocalPersistence,
-} from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase/config';
+    doc,
+    getDoc,
+    setDoc,
+    updateDoc,
+    serverTimestamp
+} from '@/lib/firebase/config';
 // Removed static import of studentData to reduce bundle size
 import { User, UserRole } from '@/types';
 

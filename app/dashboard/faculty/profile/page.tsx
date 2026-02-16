@@ -4,7 +4,11 @@ import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
+import {
+    updatePassword,
+    reauthenticateWithCredential,
+    EmailAuthProvider
+} from '@/lib/firebase/config';
 import {
     User,
     Building2,

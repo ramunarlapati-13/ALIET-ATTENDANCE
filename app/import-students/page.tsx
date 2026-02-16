@@ -1,8 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { collection, doc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
+import {
+    db,
+    collection,
+    doc,
+    setDoc
+} from '@/lib/firebase/config';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import studentsData from '@/data/students.json';

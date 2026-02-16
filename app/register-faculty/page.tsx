@@ -1,10 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { createUserWithEmailAndPassword, getAuth } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db, firebaseConfig } from '@/lib/firebase/config';
-import { initializeApp, getApp } from 'firebase/app';
+import {
+    db,
+    firebaseConfig,
+    auth,
+    createUserWithEmailAndPassword,
+    doc,
+    setDoc,
+    serverTimestamp,
+    initializeApp,
+    getApp,
+    getAuth
+} from '@/lib/firebase/config';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, UserPlus, LayoutDashboard, ShieldAlert, Upload, FileText, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth, ADMIN_EMAILS } from '@/context/AuthContext';

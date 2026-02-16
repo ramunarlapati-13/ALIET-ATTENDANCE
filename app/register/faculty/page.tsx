@@ -4,8 +4,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { GraduationCap, User, Phone, Building2, CheckCircle, Lock, Mail, Briefcase } from 'lucide-react';
-import { db } from '@/lib/firebase/config';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import {
+    db,
+    collection,
+    query,
+    where,
+    getDocs
+} from '@/lib/firebase/config';
 
 export default function FacultyRegisterPage() {
     const router = useRouter();

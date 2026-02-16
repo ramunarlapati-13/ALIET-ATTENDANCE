@@ -3,8 +3,16 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import { db } from '@/lib/firebase/config';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import {
+    db,
+    doc,
+    getDoc,
+    setDoc,
+    collection,
+    query,
+    where,
+    getDocs
+} from '@/lib/firebase/config';
 import { Loader2, Plus, Trash2, BookOpen, Save, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -30,6 +38,37 @@ function SubjectManager() {
     // State
     const [subjects, setSubjects] = useState<string[]>([]);
     const [newSubject, setNewSubject] = useState('');
+    const [assignments, setAssignments] = useState<Record<string, { uid: string, name: string }>>({});
+    const [facultyList, setFacultyList] = useState<{ uid: string, name: string }[]>([]);
+
+    useEffect(() => {
+        const fetchFaculty = async () => {
+            try {
+                const q = query(collection(db, 'users'), where('role', 'in', ['faculty', 'hod']));
+                const snap = await getDocs(q);
+                const list = snap.docs.map(d => ({ uid: d.id, name: d.data().name || 'Unknown' }));
+                setFacultyList(list.sort((a, b) => a.name.localeCompare(b.name)));
+            } catch (e) {
+                console.error("Error fetching faculty", e);
+            }
+        };
+        fetchFaculty();
+    }, []);
+
+    const handleAssignFaculty = (subject: string, uid: string) => {
+        if (!uid) {
+            setAssignments(prev => {
+                const next = { ...prev };
+                delete next[subject];
+                return next;
+            });
+            return;
+        }
+        const faculty = facultyList.find(f => f.uid === uid);
+        if (faculty) {
+            setAssignments(prev => ({ ...prev, [subject]: faculty }));
+        }
+    };
 
     const branches = ['CIVIL', 'EEE', 'MECH', 'ECE', 'CSE', 'IT', 'CSM', 'CSD'];
 
@@ -44,9 +83,12 @@ function SubjectManager() {
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
-                    setSubjects(docSnap.data().subjects || []);
+                    const data = docSnap.data();
+                    setSubjects(data.subjects || []);
+                    setAssignments(data.assignments || {});
                 } else {
                     setSubjects([]);
+                    setAssignments({});
                 }
             } catch (error) {
                 console.error("Error fetching subjects:", error);
@@ -72,6 +114,11 @@ function SubjectManager() {
 
     const handleRemoveSubject = (sub: string) => {
         setSubjects(subjects.filter(s => s !== sub));
+        setAssignments(prev => {
+            const next = { ...prev };
+            delete next[sub];
+            return next;
+        });
     };
 
     const handleSave = async () => {
@@ -84,6 +131,7 @@ function SubjectManager() {
                 year,
                 semester,
                 subjects,
+                assignments,
                 lastUpdated: new Date()
             }, { merge: true });
             alert('Subjects configuration saved successfully!');
@@ -185,16 +233,36 @@ function SubjectManager() {
                         ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                                 {subjects.map((sub, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 group">
-                                        <span className="font-medium text-gray-800 dark:text-gray-200">{sub}</span>
+                                    <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 group gap-2">
+                                        <div className="flex items-center gap-3">
+                                            <span className="font-medium text-gray-800 dark:text-gray-200">{sub}</span>
+                                            {assignments[sub] && (
+                                                <span className="text-xs text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full">
+                                                    {assignments[sub].name}
+                                                </span>
+                                            )}
+                                        </div>
                                         {canEdit && (
-                                            <button
-                                                onClick={() => handleRemoveSubject(sub)}
-                                                className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-1"
-                                                title="Remove Subject"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                                                <select
+                                                    value={assignments[sub]?.uid || ''}
+                                                    onChange={(e) => handleAssignFaculty(sub, e.target.value)}
+                                                    className="text-sm p-1.5 border rounded dark:bg-gray-800 dark:border-gray-600 flex-1 sm:flex-none"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <option value="">Assign Faculty</option>
+                                                    {facultyList.map(f => (
+                                                        <option key={f.uid} value={f.uid}>{f.name}</option>
+                                                    ))}
+                                                </select>
+                                                <button
+                                                    onClick={() => handleRemoveSubject(sub)}
+                                                    className="text-gray-400 hover:text-red-500 opacity-60 hover:opacity-100 transition-all p-1"
+                                                    title="Remove Subject"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
                                 ))}

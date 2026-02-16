@@ -1,4 +1,4 @@
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp } from '@/lib/firebase/config';
 
 // User roles
 export type UserRole = 'student' | 'faculty' | 'hod' | 'admin';

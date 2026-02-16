@@ -19,8 +19,18 @@ import {
     X,
 } from 'lucide-react';
 
-import { db } from '@/lib/firebase/config';
-import { collection, query, where, getDocs, orderBy, limit, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import {
+    db,
+    collection,
+    query,
+    where,
+    getDocs,
+    orderBy,
+    limit,
+    onSnapshot,
+    doc,
+    getDoc
+} from '@/lib/firebase/config';
 
 export default function StudentDashboard() {
     const { currentUser, signOut } = useAuth();

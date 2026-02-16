@@ -1,10 +1,58 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getDatabase } from 'firebase/database';
+import {
+    getAuth,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged,
+    GoogleAuthProvider,
+    signInWithPopup,
+    setPersistence,
+    browserLocalPersistence,
+    updateEmail,
+    updatePassword,
+    reauthenticateWithCredential,
+    EmailAuthProvider,
+    verifyBeforeUpdateEmail,
+    type User as FirebaseUser,
+    type UserCredential
+} from 'firebase/auth';
+import {
+    getFirestore,
+    collection,
+    doc,
+    setDoc,
+    getDoc,
+    getDocs,
+    updateDoc,
+    deleteDoc,
+    query,
+    where,
+    orderBy,
+    limit,
+    onSnapshot,
+    serverTimestamp,
+    addDoc,
+    Timestamp,
+    increment,
+    collectionGroup,
+    arrayUnion,
+    type Unsubscribe
+} from 'firebase/firestore';
+import {
+    getDatabase,
+    ref,
+    set as setDb,
+    push as pushDb,
+    onValue,
+    get as getDb,
+    update as updateDb,
+    remove as removeDb
+} from 'firebase/database';
 import { getStorage } from 'firebase/storage';
+import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 
-export const firebaseConfig = {
+const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
     authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
     projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -19,11 +67,10 @@ export const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 // Initialize services
-// Initialize services
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const realtimeDb = getDatabase(app);
-export const storage = getStorage(app);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const realtimeDb = getDatabase(app);
+const storage = getStorage(app);
 
 // Initialize Messaging (Client-Side Only)
 let messaging: any = null;
@@ -36,15 +83,81 @@ if (typeof window !== 'undefined') {
         }
     });
 }
-export { messaging };
 
 // Initialize Analytics (only on client side)
-let analytics;
+let analytics: any = null;
 if (typeof window !== 'undefined') {
     import('firebase/analytics').then((module) => {
         analytics = module.getAnalytics(app);
     });
 }
-export { analytics };
+
+export {
+    app,
+    auth,
+    db,
+    realtimeDb,
+    storage,
+    messaging,
+    analytics,
+    firebaseConfig,
+    // App functions
+    initializeApp,
+    getApps,
+    getApp,
+    // Auth functions
+    getAuth,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged,
+    GoogleAuthProvider,
+    signInWithPopup,
+    setPersistence,
+    browserLocalPersistence,
+    updateEmail,
+    updatePassword,
+    reauthenticateWithCredential,
+    EmailAuthProvider,
+    verifyBeforeUpdateEmail,
+    // Firestore functions
+    getFirestore,
+    collection,
+    doc,
+    setDoc,
+    getDoc,
+    getDocs,
+    updateDoc,
+    deleteDoc,
+    query,
+    where,
+    orderBy,
+    limit,
+    onSnapshot,
+    serverTimestamp,
+    addDoc,
+    Timestamp,
+    increment,
+    collectionGroup,
+    arrayUnion,
+    // Database functions
+    ref,
+    setDb,
+    pushDb,
+    onValue,
+    getDb,
+    updateDb,
+    removeDb,
+    // Messaging functions
+    getMessaging,
+    getToken,
+    onMessage
+};
+
+export type {
+    FirebaseUser,
+    UserCredential,
+    Unsubscribe
+};
 
 export default app;
