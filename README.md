@@ -28,86 +28,76 @@ A state-of-the-art, high-performance web application designed for comprehensive 
 ```text
 ALIET-ATTENDANCE/
 ├── app/                        # Next.js App Router
-│   ├── api/                    # Serverless route handlers
-│   ├── dashboard/              # Role-specific portals
-│   │   ├── admin/              # Master Management & Analytics
-│   │   ├── faculty/            # Attendance Marking & Dept Feed
-│   │   └── student/            # Attendance Tracks & Profile
-│   ├── login/                  # Clean entry portal
-│   ├── register/               # Multi-step student onboarding
-│   ├── register-faculty/       # Administrative faculty registration
-│   ├── import-students/        # Bulk ingestion tools
-│   ├── globals.css             # Global styles & Pencil Animations
-│   └── layout.tsx              # Root layout with Global context
+│   ├── api/                    # Serverless route handlers (Admin, Auth)
+│   ├── dashboard/              # Role-specific portals (Admin, Faculty, HOD, Student)
+│   ├── login/                  # Unified entry portal with role-detection
+│   ├── register/               # Student onboarding (Individual & Bulk)
+│   ├── register-faculty/       # Secure Admin-only registration for Staff/HODs
+│   ├── import-students/        # Bulk ingestion tools for student registries
+│   └── layout.tsx              # Root layout with Auth & Theme context
 ├── components/                 # Reusable Component Library
-│   ├── ui/                     # Core UI elements (Pencil Loader, Buttons, etc.)
-│   ├── auth/                   # Protected routes & role wrappers
-│   └── announcements/          # Notification ticker systems
+│   ├── ui/                     # Premium UI components (Pencil Loader, Floating Dock)
+│   ├── auth/                   # Role-based protection & secure wrappers
+│   └── announcements/          # Multi-tier notification systems
 ├── context/                    # React Context Providers
-│   ├── AuthContext.tsx         # Firebase user & session management
-│   └── ThemeContext.tsx        # Dynamic Dark/Light mode engine
-├── data/                       # Local JSON Registries
-│   └── students.json           # Master EEE enrollment reference
+│   ├── AuthContext.tsx         # Unified Auth state with secured Admin checks
+│   └── ThemeContext.tsx        # High-performance Dark/Light mode engine
 ├── lib/                        # Configuration & Core SDKs
-│   └── firebase/               # Firebase Admin & Client config
-├── types/                      # Global TypeScript interfaces
-└── utils/                      # Business logic & date helpers
+│   └── firebase/               
+│       ├── config.ts           # CENTRALIZED modular Firebase SDK aggregator
+│       └── admin.ts            # Node.js Admin SDK for privileged operations
+├── types/                      # Comprehensive TypeScript interfaces
+└── utils/                      # Architecture-wide utilities & validators
 ```
 
 ---
 
-## 🧱 Key UI Components
+## 🏗️ Robust Architecture & Security
 
-### ✏️ Signature Pencil Loader
-A custom, branded animation used throughout the application to signify loading states.
-- **`loader-1.tsx`**: The core SVG animation component with multi-size `scale` support.
-- **`GlobalPencilLoader.tsx`**: A full-screen overlay integrated into the root layout with **Backdrop Blur** and tracking-transition effects.
-- **`LoadingBar.tsx`**: A top-mounted progress bar for route transitions.
+### 🔌 Centralized Firebase Hub (`lib/firebase/config.ts`)
+To prevent "Instance Mismatch" errors and ensure high performance, all Firebase interactions are unified:
+- **Modular Aggregation**: All Firestore, Auth, Database, and Messaging functions are exported from a single file.
+- **Instance Consistency**: Guarantees that the entire application uses the exact same initialized App instance.
+- **Type Safety**: Unified types for `User`, `Timestamp`, and `Unsubscribe` across the codebase.
 
-### 📢 Announcement System
-- **`AnnouncementTicker.tsx`**: A smooth-scrolling, role-aware horizontal news ticker that pauses on hover.
-- **`AnnouncementManager.tsx`**: Comprehensive admin interface for creating, editing, and targeting campus updates.
+### 🛡️ Secure Faculty Registration (`register-faculty/`)
+Implemented a high-security pattern for creating staff accounts:
+- **Secondary Auth Instance**: Uses a dedicated Firebase app instance to create accounts via `Auth` without disrupting the active Administrator's session.
+- **Admin-Only Access**: Guarded by both Client-Side `ProtectedRoute` and Server-Side Admin SDK checks.
+- **Hierarchical Storage**: Synchronizes staff data across `users` collection and branch-specific sub-collections.
 
-### 🌓 Theme Engine
-- **`ThemeToggleFloating.tsx`**: A sleek icon-based switcher for Dark/Light modes.
-- **Custom Utility Styles**: Integrated dark mode support for all charts, tables, and dashboards.
-
-### 🖱️ Experience Tools
-- **`SpotlightCursor.tsx`**: An interactive light-follow effect for the Admin Dashboard.
-- **`NavigationDock.tsx`**: A premium mobile-responsive floating navigation bar.
-- **`Skeleton.tsx`**: Shimmer-effect placeholders for optimistic data loading.
+### 🔐 Environmental Security
+- **Secured Admin Emails**: Removed hardcoded admin registries from the codebase.
+- **Dynamic Authorization**: Admin privileges are now strictly controlled via the `NEXT_PUBLIC_ADMIN_EMAILS` environment variable, processed through the `AuthContext` for instant role-elevation.
 
 ---
 
 ## 🚀 Core Features
 
-### 📅 Advanced Attendance Engine
-- **Lateral Entry Intelligence**: Automatically calculates academic year based on registration number patterns.
-- **Real-Time Sync**: RTDB integration ensures attendance marked by faculty reflects instantly in HOD/Admin views.
-- **Audit Logging**: Tracks every sign-in and attendance change in the `logs` collection.
+### 📅 Intelligent Attendance Engine
+- **Pattern Recognition**: Automatically detects Department, Year, and Entry Type (Regular/Lateral) from registration numbers.
+- **Sub-Second Sync**: Realtime Database integration ensures data marked on-ground reflects instantly in Administrative dashboards.
 
-### 📊 Admin Control Center
-- **Interactive Branch Cards**: Click any branch (CSE, EEE, etc.) to view live enrollment.
-- **Year-Wise Breakdown**: Detailed visibility of students across 1st, 2nd, 3rd, and 4th Year.
-- **Master Registry Check**: Cross-references Firestore data with `students.json` to identify un-registered students.
+### 📊 Administrative suite
+- **Master Registry Comparison**: Real-time cross-referencing between local `students.json` and live Firestore data to flag unregistered students.
+- **Hierarchical Analytics**: Deep-dive into attendance trends by Branch -> Year -> Section.
 
-### 📣 Campus Communication Hub
-- **Targeted Banners**: Post announcements specifically for **Students**, **Faculty**, or **HODs**.
-- **Live Lifecycle Management**: admins can instantly Toggle, Edit, or Delete active announcements with real-time propagation.
+### 📣 Dynamic Announcement System
+- **Role-Based Targeting**: Post campus news specifically for Students, Faculty, or HODs.
+- **Tiered Feed**: Distinguish between Institutional, Departmental, and General updates.
 
-### 📈 Analytics & Reporting
-- **Multi-Format Export**: Generate professional reports in **PDF**, **Excel**, or **CSV**.
-- **Visual Trends**: Performance charting for branches and individual student attendance.
-- **Data Ingestion**: Support for bulk student uploads via CSV/Excel using PapaParse and XLSX.
+### 📈 Professional Reporting
+- **Enterprise Export**: Instant generation of **PDF**, **Excel**, and **CSV** reports for attendance and academic marks.
+- **Visualization**: Dark-mode compatible charts using Recharts for performance monitoring.
 
 ---
 
 ## 🏁 Development Setup
 
 1. **Install Dependencies**: `npm install`
-2. **Setup Env**: Copy `.env.example` to `.env.local` and add Firebase credentials.
-3. **Launch**: `npm run dev`
-4. **Build PWA**: `npm run build`
+2. **Setup Env**: Copy `.env.example` to `.env.local` and populate with your Firebase credentials and SECURE_ADMIN_EMAILS.
+3. **Launch**: `npm run dev` (Runs on port 3000/3001)
+4. **Build**: `npm run build`
 
 ---
 
