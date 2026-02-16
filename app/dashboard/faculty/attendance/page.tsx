@@ -27,7 +27,9 @@ export default function AttendancePage() {
     }, [currentUser]);
     const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
     const [topic, setTopic] = useState('');
+    const [topic, setTopic] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
 
     // Edit Mode State
     const [isEditMode, setIsEditMode] = useState(false);
@@ -429,8 +431,13 @@ export default function AttendancePage() {
                 cancelEdit();
             }
 
+            setIsSuccess(true);
+            setTimeout(() => setIsSuccess(false), 3000);
+
             // Sync to get server timestamps properly
             loadRecentSubmissions();
+
+            alert('Attendance submitted successfully!');
 
         } catch (error) {
             console.error('Error submitting attendance:', error);
@@ -841,7 +848,7 @@ export default function AttendancePage() {
                             className="flex items-center gap-2 px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all font-medium transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Save className="w-5 h-5" />
-                            {attendanceDate > new Date().toISOString().split('T')[0] ? 'Future Date Restricted' : isSubmitting ? 'Saving...' : isEditMode ? 'Update Attendance' : 'Submit Attendance'}
+                            {attendanceDate > new Date().toISOString().split('T')[0] ? 'Future Date Restricted' : isSubmitting ? 'Saving...' : isSuccess ? 'Saved Successfully!' : isEditMode ? 'Update Attendance' : 'Submit Attendance'}
                         </button>
                     </div>
                 )}

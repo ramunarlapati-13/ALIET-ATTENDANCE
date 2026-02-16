@@ -94,10 +94,16 @@ export const usePushNotifications = () => {
                 const messaging = getMessaging();
                 onMessage(messaging, (payload) => {
                     console.log('Message received. ', payload);
-                    // You can show a custom toast here
-                    const { title, body } = payload.notification || {};
+                    // Standard browser notification for foreground if not focused, or just as a fallback
+                    const { title, body, image } = payload.notification || {};
                     if (title) {
-                        new Notification(title, { body });
+                        // Ask the browser to show a notification even if in foreground
+                        // Note: Browsers might block this if the tab is strictly focused, but it's the requested "normal app notification" behavior
+                        new Notification(title, {
+                            body,
+                            icon: '/logo.png',
+                            // image property is not fully supported in standard Notification API type in all TS versions
+                        });
                     }
                 });
             }).catch(err => console.error("Messaging listener error", err));

@@ -33,6 +33,41 @@ export default function StudentDashboard() {
     const [subjectCount, setSubjectCount] = useState(0);
     const [averageMarks, setAverageMarks] = useState(0);
 
+    // Fetch Notifications (Announcements)
+    const [notifications, setNotifications] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (!currentUser) return;
+
+        const q = query(
+            collection(db, 'announcements'),
+            where('isActive', '==', true),
+            orderBy('createdAt', 'desc'),
+            limit(10)
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const allAnn = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            // Client-side Filtering
+            const filtered = allAnn.filter((ann: any) => {
+                if (currentUser.role === 'admin') return true;
+                if (!ann.audience || ann.audience === 'all') return true;
+                if (currentUser.role === ann.audience) {
+                    if (ann.tier === 'departmental') {
+                        return currentUser.department === ann.department || currentUser.branch === ann.department;
+                    }
+                    return true;
+                }
+                return false;
+            });
+
+            setNotifications(filtered);
+        });
+
+        return () => unsubscribe();
+    }, [currentUser]);
+
     // Fetch Subject Count & Marks
     useEffect(() => {
         const fetchData = async () => {
@@ -204,23 +239,20 @@ export default function StudentDashboard() {
 
                                     {/* Notification Dropdown */}
                                     {isNotificationOpen && (
-                                        <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                        <div className="fixed left-4 right-4 top-20 sm:absolute sm:right-0 sm:left-auto sm:top-full sm:mt-2 sm:w-80 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                                             <div className="p-3 border-b border-gray-100 dark:border-gray-700 font-semibold text-gray-900 dark:text-white flex justify-between items-center">
                                                 <span>Notifications</span>
                                                 <button onClick={() => setIsNotificationOpen(false)} className="text-gray-400 hover:text-gray-600">
-                                                    <X className="w-4 h-4" /> {/* Ensure X is imported if used, otherwise remove or use text 'x' */}
+                                                    <X className="w-4 h-4" />
                                                 </button>
                                             </div>
-                                            <div className="p-2 max-h-[300px] overflow-y-auto">
-                                                {permission === 'default' && isSupported ? (
-                                                    <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-center">
+                                            <div className="p-2 max-h-[300px] overflow-y-auto custom-scrollbar">
+                                                {permission === 'default' && isSupported && (
+                                                    <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-center mb-2">
                                                         <div className="mx-auto w-10 h-10 bg-indigo-100 dark:bg-indigo-800 rounded-full flex items-center justify-center mb-2">
                                                             <Bell className="w-5 h-5 text-indigo-600 dark:text-indigo-300" />
                                                         </div>
                                                         <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">Enable Notifications</p>
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                                                            Don't miss out on important updates.
-                                                        </p>
                                                         <button
                                                             onClick={() => {
                                                                 requestPermission();
@@ -230,6 +262,26 @@ export default function StudentDashboard() {
                                                         >
                                                             Turn On
                                                         </button>
+                                                    </div>
+                                                )}
+
+                                                {notifications.length > 0 ? (
+                                                    <div className="space-y-2">
+                                                        {notifications.map((notif) => (
+                                                            <div key={notif.id} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                                                <div className="flex justify-between items-start mb-1">
+                                                                    <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${notif.tier === 'institutional' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'}`}>
+                                                                        {notif.tier}
+                                                                        {notif.department ? ` - ${notif.department}` : ''}
+                                                                    </span>
+                                                                    <span className="text-[10px] text-gray-400">
+                                                                        {notif.createdAt?.toDate ? notif.createdAt.toDate().toLocaleDateString() : 'Just now'}
+                                                                    </span>
+                                                                </div>
+                                                                <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-0.5">{notif.title}</h4>
+                                                                <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2">{notif.content}</p>
+                                                            </div>
+                                                        ))}
                                                     </div>
                                                 ) : (
                                                     <div className="flex flex-col items-center justify-center py-8 text-gray-400">
