@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import {
     db,
+    doc,
+    getDoc,
     collection,
     query,
     where,
@@ -70,23 +72,18 @@ export default function ReportsPage() {
 
             const allStudents = Array.from(studentsMap.values()).sort((a: any, b: any) => a.regNo.localeCompare(b.regNo));
 
-            // 2. Fetch Attendance Records
-            const attRef = collection(db, 'attendance');
-            const q = query(
-                attRef,
-                where('branch', '==', branch),
-                where('year', '==', parseInt(year)),
-                where('semester', '==', semester),
-                where('section', '==', section),
-                where('date', '>=', startDate),
-                where('date', '<=', endDate)
-                // Note: Firestore requires index for multiple fields + range.
-                // If index missing, this might fail. We should catch it.
-                // Fallback: Fetch by Branch/Year/Sem/Section and filter date client-side?
-            );
+            // 2. Fetch Configured Subjects for the Semester
+            const docId = `${branch}_${year}_${semester}`;
+            const subjectDocRef = doc(db, 'class_subjects', docId);
+            const subjectDocSnap = await getDoc(subjectDocRef);
 
-            // Using Client-side date filter fallback to avoid index issues immediately
-            // But for now let's try direct query or just simpler query
+            let semesterSubjects: string[] = [];
+            if (subjectDocSnap.exists()) {
+                semesterSubjects = subjectDocSnap.data().subjects || [];
+            }
+
+            // 3. Fetch Attendance Records
+            const attRef = collection(db, 'attendance');
             const qSimple = query(
                 attRef,
                 where('branch', '==', branch),
@@ -100,10 +97,14 @@ export default function ReportsPage() {
                 .map(doc => ({ id: doc.id, ...doc.data() } as any))
                 .filter(doc => doc.date >= startDate && doc.date <= endDate);
 
-            // 3. Process Data for Matrix
-            // Identify Subjects
+            // 4. Process Data for Matrix
             const subjectStats: Record<string, number> = {}; // Subject -> Total CC
             const studentStats: Record<string, Record<string, number>> = {}; // RegNo -> { Subject: CA }
+
+            // Initialize all semester subjects (even if 0 CC)
+            semesterSubjects.forEach(s => {
+                subjectStats[s] = 0;
+            });
 
             // Init student stats
             allStudents.forEach((s: any) => {
@@ -112,16 +113,15 @@ export default function ReportsPage() {
 
             allDocs.forEach(doc => {
                 const subj = doc.subject || 'Unknown';
+                // Only count if it's in our semester subjects or keep if it has data
                 if (!subjectStats[subj]) subjectStats[subj] = 0;
                 subjectStats[subj]++; // Increment CC for this subject
 
                 // Process records
                 const records = doc.records || {};
                 Object.entries(records).forEach(([regNo, status]) => {
-                    if (allStudents.find((s: any) => s.regNo === regNo)) {
-                        if (!studentStats[regNo]) studentStats[regNo] = {};
+                    if (studentStats[regNo]) {
                         if (!studentStats[regNo][subj]) studentStats[regNo][subj] = 0;
-
                         if (status === 'Present') {
                             studentStats[regNo][subj]++;
                         }
@@ -129,12 +129,12 @@ export default function ReportsPage() {
                 });
             });
 
-            // Flatten Subjects for Table Header
-            const subjects = Object.keys(subjectStats).sort();
+            // Ensure our final subject list is the union of configured + any extra that has data
+            const finalSubjects = Array.from(new Set([...semesterSubjects, ...Object.keys(subjectStats)])).sort();
 
             setReportData({
                 students: allStudents,
-                subjects,
+                subjects: finalSubjects,
                 subjectCC: subjectStats,
                 studentCA: studentStats,
                 meta: { branch, year, semester, section, startDate, endDate }
@@ -207,34 +207,29 @@ export default function ReportsPage() {
                         <table className="w-full text-xs md:text-sm border-collapse">
                             <thead>
                                 <tr className="bg-gray-100 dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700">
-                                    <th className="p-2 border-r min-w-[50px] sticky left-0 bg-gray-100 dark:bg-gray-900 z-10">S.No</th>
-                                    <th className="p-2 border-r min-w-[120px] sticky left-[50px] bg-gray-100 dark:bg-gray-900 z-10 text-left">Reg No</th>
-                                    <th className="p-2 border-r min-w-[200px] text-left">Name</th>
+                                    <th rowSpan={2} className="p-2 border-r min-w-[50px] sticky left-0 bg-gray-100 dark:bg-gray-900 z-10">S.No</th>
+                                    <th rowSpan={2} className="p-2 border-r min-w-[120px] sticky left-[50px] bg-gray-100 dark:bg-gray-900 z-10 text-left">Reg No</th>
+                                    <th rowSpan={2} className="p-2 border-r min-w-[200px] text-left">Name of the student</th>
 
                                     {reportData.subjects.map((subj: string) => (
-                                        <th key={subj} colSpan={2} className="p-2 border-r text-center font-bold bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300">
+                                        <th key={subj} colSpan={2} className="p-2 border-r text-center font-bold bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 text-[10px] break-words uppercase">
                                             {subj}
                                         </th>
                                     ))}
 
                                     <th colSpan={2} className="p-2 border-r text-center font-bold bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300">TOTAL</th>
-                                    <th className="p-2 text-center">%</th>
+                                    <th rowSpan={2} className="p-2 text-center text-red-600 font-bold">%</th>
                                 </tr>
-                                <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700 text-[10px] md:text-xs">
-                                    <th className="p-1 border-r sticky left-0 bg-gray-50 dark:bg-gray-800 z-10"></th>
-                                    <th className="p-1 border-r sticky left-[50px] bg-gray-50 dark:bg-gray-800 z-10"></th>
-                                    <th className="p-1 border-r"></th>
-
+                                <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700 text-[10px]">
                                     {reportData.subjects.map((subj: string) => (
-                                        <>
-                                            <th key={`${subj}-CC`} className="p-1 border-r text-center w-12 bg-gray-100/50">CC</th>
-                                            <th key={`${subj}-CA`} className="p-1 border-r text-center w-12">CA</th>
-                                        </>
+                                        <React.Fragment key={subj}>
+                                            <th className="p-1 border-r text-center w-10 bg-gray-100/50">CC</th>
+                                            <th className="p-1 border-r text-center w-10">CA</th>
+                                        </React.Fragment>
                                     ))}
 
-                                    <th className="p-1 border-r text-center w-12 bg-gray-100/50">CC</th>
-                                    <th className="p-1 border-r text-center w-12">CA</th>
-                                    <th className="p-1 text-center"></th>
+                                    <th className="p-1 border-r text-center w-10 bg-green-100/30">CC</th>
+                                    <th className="p-1 border-r text-center w-10 bg-green-100/30">CA</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -244,12 +239,12 @@ export default function ReportsPage() {
                                         <td className="p-2 border-r sticky left-[50px] bg-yellow-50 dark:bg-yellow-900/10 z-10">-</td>
                                         <td className="p-2 border-r">Conducting Total</td>
                                         {reportData.subjects.map((subj: string) => (
-                                            <>
-                                                <td key={`${subj}-cc-row`} className="p-2 border-r text-center">{reportData.subjectCC[subj]}</td>
-                                                <td key={`${subj}-ca-row`} className="p-2 border-r text-center bg-gray-50/50">-</td>
-                                            </>
+                                            <React.Fragment key={subj}>
+                                                <td className="p-2 border-r text-center text-blue-600 bg-blue-50/50">{reportData.subjectCC[subj]}</td>
+                                                <td className="p-2 border-r text-center">-</td>
+                                            </React.Fragment>
                                         ))}
-                                        <td className="p-2 border-r text-center text-blue-600">
+                                        <td className="p-2 border-r text-center text-green-700 bg-green-50/50">
                                             {(Object.values(reportData.subjectCC) as number[]).reduce((a, b) => a + b, 0)}
                                         </td>
                                         <td className="p-2 border-r text-center">-</td>
@@ -278,10 +273,10 @@ export default function ReportsPage() {
                                                 const colorClass = subPercent < 65 ? 'text-red-600 font-bold' : subPercent < 75 ? 'text-yellow-600' : 'text-green-600';
 
                                                 return (
-                                                    <>
-                                                        <td key={`${subj}-cc`} className="p-2 border-r text-center text-gray-400 text-[10px]">{cc}</td>
-                                                        <td key={`${subj}-ca`} className={`p-2 border-r text-center font-medium ${colorClass}`}>{ca}</td>
-                                                    </>
+                                                    <React.Fragment key={`${student.regNo}-${subj}`}>
+                                                        <td className="p-2 border-r text-center text-gray-400 text-[10px]">{cc}</td>
+                                                        <td className={`p-2 border-r text-center font-medium ${colorClass}`}>{ca}</td>
+                                                    </React.Fragment>
                                                 );
                                             })}
 

@@ -231,39 +231,59 @@ function SubjectManager() {
                                 No subjects configured for this semester.
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {subjects.map((sub, idx) => (
-                                    <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 group gap-2">
-                                        <div className="flex items-center gap-3">
-                                            <span className="font-medium text-gray-800 dark:text-gray-200">{sub}</span>
-                                            {assignments[sub] && (
-                                                <span className="text-xs text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full">
-                                                    {assignments[sub].name}
-                                                </span>
-                                            )}
-                                        </div>
-                                        {canEdit && (
-                                            <div className="flex items-center gap-2 w-full sm:w-auto">
-                                                <select
-                                                    value={assignments[sub]?.uid || ''}
-                                                    onChange={(e) => handleAssignFaculty(sub, e.target.value)}
-                                                    className="text-sm p-1.5 border rounded dark:bg-gray-800 dark:border-gray-600 flex-1 sm:flex-none"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                >
-                                                    <option value="">Assign Faculty</option>
-                                                    {facultyList.map(f => (
-                                                        <option key={f.uid} value={f.uid}>{f.name}</option>
-                                                    ))}
-                                                </select>
+                                    <div key={idx} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col">
+                                        {/* Header Area */}
+                                        <div className="p-4 flex items-center justify-between border-b border-gray-50 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-900/20">
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-xl text-primary-600 dark:text-primary-400">
+                                                    <BookOpen className="w-5 h-5" />
+                                                </div>
+                                                <span className="font-bold text-gray-900 dark:text-white text-lg truncate" title={sub}>{sub}</span>
+                                            </div>
+                                            {canEdit && (
                                                 <button
                                                     onClick={() => handleRemoveSubject(sub)}
-                                                    className="text-gray-400 hover:text-red-500 opacity-60 hover:opacity-100 transition-all p-1"
+                                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
                                                     title="Remove Subject"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
-                                            </div>
-                                        )}
+                                            )}
+                                        </div>
+
+                                        {/* Assignment Area */}
+                                        <div className="p-4 bg-white dark:bg-gray-800">
+                                            {canEdit ? (
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Assign Faculty</label>
+                                                    <select
+                                                        value={assignments[sub]?.uid || ''}
+                                                        onChange={(e) => handleAssignFaculty(sub, e.target.value)}
+                                                        className="w-full p-2.5 text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all cursor-pointer"
+                                                    >
+                                                        <option value="">-- No Faculty Assigned --</option>
+                                                        {facultyList.map(f => (
+                                                            <option key={f.uid} value={f.uid}>{f.name}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Faculty In-Charge</label>
+                                                    <div className={`flex items-center gap-2 p-2.5 rounded-xl border ${assignments[sub]
+                                                            ? 'bg-primary-50/50 border-primary-100 text-primary-700 dark:bg-primary-900/10 dark:border-primary-900/30 dark:text-primary-400'
+                                                            : 'bg-gray-50 border-gray-100 text-gray-500 dark:bg-gray-900 dark:border-gray-800'
+                                                        }`}>
+                                                        <div className={`w-2 h-2 rounded-full ${assignments[sub] ? 'bg-primary-500' : 'bg-gray-400'}`} />
+                                                        <span className="text-sm font-semibold truncate">
+                                                            {assignments[sub] ? assignments[sub].name : 'Not Assigned'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
                             </div>

@@ -3,6 +3,8 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import {
     db,
+    doc,
+    getDoc,
     collection,
     query,
     where,
@@ -11,6 +13,7 @@ import {
     onSnapshot
 } from '@/lib/firebase/config';
 import studentData from '@/data/students.json';
+import React from 'react';
 import { detectBranchInfo } from '@/utils/branchDetector';
 import {
     BarChart,
@@ -37,7 +40,8 @@ import {
     Download,
     FileSpreadsheet,
     FileText,
-    ChevronDown
+    ChevronDown,
+    Printer
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import html2canvas from 'html2canvas';
@@ -52,6 +56,7 @@ export default function AnalyticsPage() {
     // Filters
     const [selectedBranch, setSelectedBranch] = useState(currentUser?.department || 'EEE');
     const [selectedYear, setSelectedYear] = useState(2);
+    const [selectedSemester, setSelectedSemester] = useState('1');
     const [selectedSection, setSelectedSection] = useState('A');
 
     // Get today's date in YYYY-MM-DD format
@@ -60,9 +65,14 @@ export default function AnalyticsPage() {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     };
 
-    const [startDate, setStartDate] = useState(getTodayString());
+    const [startDate, setStartDate] = useState(() => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - 6); // Default last 6 months to cover the full semester
+        return d.toISOString().split('T')[0];
+    });
     const [endDate, setEndDate] = useState(getTodayString());
     const [isLoading, setIsLoading] = useState(false);
+    const [reportLoading, setReportLoading] = useState(false);
 
     // Helper: Format date to dd-mm-yyyy
     const formatDate = (dateStr: string) => {
@@ -70,13 +80,6 @@ export default function AnalyticsPage() {
         const [y, m, d] = dateStr.split('-');
         return `${d}-${m}-${y}`;
     };
-
-    // Update default branch when currentUser loads
-    useEffect(() => {
-        if (currentUser?.department) {
-            setSelectedBranch(currentUser.department);
-        }
-    }, [currentUser]);
 
     // Data State
     const [attendanceDocs, setAttendanceDocs] = useState<any[]>([]);
@@ -87,12 +90,23 @@ export default function AnalyticsPage() {
     const [selectedGraph, setSelectedGraph] = useState('pie');
     const chartRef = useRef<HTMLDivElement>(null);
 
+    // Mounted State for Hydration Fix
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // Update default branch when currentUser loads
+    useEffect(() => {
+        if (currentUser?.department) {
+            setSelectedBranch(currentUser.department);
+        }
+    }, [currentUser]);
+
     // 0. Fetch Students from Firestore (to include newly registered ones)
     useEffect(() => {
         async function fetchStudents() {
             try {
-                // Construct path: admin/students/{branch}/{year}/{section}
-                // Note: Year is number in state, explicitly convert to string if needed
                 const path = `admin/students/${selectedBranch}/${selectedYear}/${selectedSection}`;
                 const ref = collection(db, path);
                 const snap = await getDocs(ref);
@@ -102,8 +116,7 @@ export default function AnalyticsPage() {
                 }));
                 setFetchedStudents(students);
             } catch (e) {
-                console.error("Error fetching students for analytics:", e);
-                // Fallback to empty, relying on JSON
+                console.error("Error fetching students:", e);
                 setFetchedStudents([]);
             }
         }
@@ -120,6 +133,7 @@ export default function AnalyticsPage() {
             collection(db, 'attendance'),
             where('branch', '==', selectedBranch),
             where('year', '==', selectedYear),
+            where('semester', '==', selectedSemester),
             where('section', '==', selectedSection)
         );
 
@@ -135,7 +149,39 @@ export default function AnalyticsPage() {
         });
 
         return () => unsubscribe();
-    }, [selectedBranch, selectedYear, selectedSection]);
+    }, [selectedBranch, selectedYear, selectedSemester, selectedSection]);
+
+    // 2. Fetch Configured Subjects & Assignments
+    const [semesterSubjects, setSemesterSubjects] = useState<string[]>([]);
+    const [subjectAssignments, setSubjectAssignments] = useState<Record<string, any>>({});
+
+    useEffect(() => {
+        async function fetchSubjects() {
+            setReportLoading(true);
+            try {
+                const docId = `${selectedBranch}_${selectedYear}_${selectedSemester}`;
+                const ref = doc(db, 'class_subjects', docId);
+                const snap = await getDoc(ref);
+                if (snap.exists()) {
+                    const data = snap.data();
+                    setSemesterSubjects(data.subjects || []);
+                    setSubjectAssignments(data.assignments || {});
+                } else {
+                    setSemesterSubjects([]);
+                    setSubjectAssignments({});
+                }
+            } catch (e) {
+                console.error("Error fetching subjects:", e);
+                setSemesterSubjects([]);
+                setSubjectAssignments({});
+            } finally {
+                setReportLoading(false);
+            }
+        }
+        if (selectedBranch && selectedYear && selectedSemester) {
+            fetchSubjects();
+        }
+    }, [selectedBranch, selectedYear, selectedSemester]);
 
     // 3. Helper: Calculate Stats for a given set of docs
     const calculateStats = (students: any[], docs: any[]) => {
@@ -265,10 +311,53 @@ export default function AnalyticsPage() {
                 percent: Math.round((present / total) * 100),
                 present,
                 total,
-                topic: record.topic || 'No Topic'
+                topic: record.topic || 'No Topic',
+                subject: record.subject
             };
         });
     }, [filteredDocs]);
+
+    // E. Matrix Data (Subject-wise for Detailed Report)
+    const matrixData = useMemo(() => {
+        const subjectCC: Record<string, number> = {};
+        const studentCA: Record<string, Record<string, number>> = {};
+
+        // Initialize subjects from configured list
+        semesterSubjects.forEach(s => {
+            subjectCC[s] = 0;
+        });
+
+        // Init student matrix
+        classStudents.forEach(s => {
+            studentCA[s.regNo] = {};
+        });
+
+        // Group attendance by subject
+        filteredDocs.forEach(doc => {
+            const subj = doc.subject || 'Unknown';
+            if (!subjectCC[subj]) subjectCC[subj] = 0;
+            subjectCC[subj]++;
+
+            const records = doc.records || {};
+            Object.entries(records).forEach(([regNo, status]) => {
+                if (studentCA[regNo]) {
+                    if (!studentCA[regNo][subj]) studentCA[regNo][subj] = 0;
+                    if (status === 'Present' || status === 'present' || status === true) {
+                        studentCA[regNo][subj]++;
+                    }
+                }
+            });
+        });
+
+        // Get final sorted subject list (configured + any existing in stats)
+        const finalSubjects = Array.from(new Set([...semesterSubjects, ...Object.keys(subjectCC)])).sort();
+
+        return {
+            subjects: finalSubjects,
+            subjectCC,
+            studentCA
+        };
+    }, [classStudents, filteredDocs, semesterSubjects]);
 
     // Overall Percentage
     useEffect(() => {
@@ -315,60 +404,156 @@ export default function AnalyticsPage() {
                 []
             ];
 
-            const tableHeaders = ["S.No", "Reg No", "Name", "Classes Attended", "Total Classes", "Percentage"];
+            // Matrix Export Logic
+            const headerRow1 = ["S.No", "Reg No", "Name"];
+            const headerRow2 = ["", "", ""];
 
-            const tableBody = globalStudentStats.map((s: any, i: number) => [
-                i + 1,
-                s.regNo,
-                s.name,
-                s.present,
-                s.total,
-                s.percent + '%'
-            ]);
+            matrixData.subjects.forEach(subj => {
+                headerRow1.push(subj, "");
+                headerRow2.push("CC", "CA");
+            });
 
-            const wsData = [...headerInfo, tableHeaders, ...tableBody];
+            headerRow1.push("TOTAL CC", "TOTAL CA", "OVERALL %");
+            headerRow2.push("", "", "");
+
+            const tableBody = globalStudentStats.map((s: any, i: number) => {
+                const row = [i + 1, s.regNo, s.name];
+                let totalSCC = 0;
+                let totalSCA = 0;
+
+                matrixData.subjects.forEach(subj => {
+                    const cc = matrixData.subjectCC[subj] || 0;
+                    const ca = (matrixData.studentCA[s.regNo] && matrixData.studentCA[s.regNo][subj]) || 0;
+                    row.push(cc, ca);
+                    totalSCC += cc;
+                    totalSCA += ca;
+                });
+
+                row.push(totalSCC, totalSCA, (totalSCC > 0 ? Math.round((totalSCA / totalSCC) * 100) : 0) + '%');
+                return row;
+            });
+
+            // Add Conducting Totals row
+            const conductingTotalsRow: (string | number)[] = ["", "", "Conducting Totals (CC)"];
+            let grandTotalCC = 0;
+            matrixData.subjects.forEach(subj => {
+                const cc = matrixData.subjectCC[subj] || 0;
+                conductingTotalsRow.push(cc, "-");
+                grandTotalCC += cc;
+            });
+            conductingTotalsRow.push(grandTotalCC, "-", "-");
+
+            const wsData = [...headerInfo, headerRow1, headerRow2, conductingTotalsRow, ...tableBody];
             const ws = XLSX.utils.aoa_to_sheet(wsData);
 
+            // Merges
             if (!ws['!merges']) ws['!merges'] = [];
-            ws['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } });
-            ws['!merges'].push({ s: { r: 1, c: 0 }, e: { r: 1, c: 5 } });
-            ws['!merges'].push({ s: { r: 2, c: 0 }, e: { r: 2, c: 5 } });
+            // Merges for Subject Headers
+            let colIdx = 3;
+            matrixData.subjects.forEach(() => {
+                ws['!merges']!.push({ s: { r: headerInfo.length, c: colIdx }, e: { r: headerInfo.length, c: colIdx + 1 } });
+                colIdx += 2;
+            });
 
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+            XLSX.utils.book_append_sheet(wb, ws, "Attendance Matrix");
             XLSX.writeFile(wb, `${fileName}.xlsx`);
 
         } else if (type === 'csv') {
-            const data = globalStudentStats.map((s: any, i: number) => ({
-                'S.No': i + 1,
-                'Reg No': s.regNo,
-                'Name': s.name,
-                'Classes Attended': s.present,
-                'Total Classes': s.total,
-                'Percentage': s.percent + '%'
-            }));
+            const data = globalStudentStats.map((s: any, i: number) => {
+                const obj: any = {
+                    'S.No': i + 1,
+                    'Reg No': s.regNo,
+                    'Name': s.name
+                };
+                let totalSCC = 0;
+                let totalSCA = 0;
+                matrixData.subjects.forEach(subj => {
+                    const cc = matrixData.subjectCC[subj] || 0;
+                    const ca = (matrixData.studentCA[s.regNo] && matrixData.studentCA[s.regNo][subj]) || 0;
+                    obj[`${subj}_CC`] = cc;
+                    obj[`${subj}_CA`] = ca;
+                    totalSCC += cc;
+                    totalSCA += ca;
+                });
+                obj['Total_CC'] = totalSCC;
+                obj['Total_CA'] = totalSCA;
+                obj['Percentage'] = (totalSCC > 0 ? Math.round((totalSCA / totalSCC) * 100) : 0) + '%';
+                return obj;
+            });
             const ws = XLSX.utils.json_to_sheet(data);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Attendance");
             XLSX.writeFile(wb, `${fileName}.csv`);
 
         } else if (type === 'pdf') {
-            const doc = new jsPDF();
-            doc.setFontSize(18);
-            doc.text("ALIET Attendance Report", 14, 20);
-            doc.setFontSize(12);
-            doc.text(`Branch: ${selectedBranch} | Year: ${selectedYear} | Section: ${selectedSection}`, 14, 30);
-            doc.text(`Date Range: ${formatDate(startDate)} to ${formatDate(endDate)}`, 14, 38);
-            doc.text(`Downloaded: ${new Date().toLocaleString()}`, 14, 46);
+            const doc = new jsPDF('l', 'mm', 'a4'); // Landscape for Matrix
+            doc.setFontSize(16);
+            doc.text("ALIET Attendance Detailed Report", 14, 15);
+            doc.setFontSize(10);
+            doc.text(`Branch: ${selectedBranch} | Year: ${selectedYear} | Section: ${selectedSection}`, 14, 22);
+            doc.text(`Date Range: ${formatDate(startDate)} to ${formatDate(endDate)} | Sem: ${selectedSemester}`, 14, 28);
+
+            const heads = [
+                [
+                    { content: 'S.No', rowSpan: 2, styles: { halign: 'center' as const, valign: 'middle' as const } },
+                    { content: 'Reg No', rowSpan: 2, styles: { halign: 'center' as const, valign: 'middle' as const } },
+                    { content: 'Name', rowSpan: 2, styles: { halign: 'center' as const, valign: 'middle' as const } },
+                    ...matrixData.subjects.map(subj => ({ content: subj, colSpan: 2, styles: { halign: 'center' as const } })),
+                    { content: 'SUMMARY (TCC/TCA)', colSpan: 2, styles: { halign: 'center' as const } },
+                    { content: '%', rowSpan: 2, styles: { halign: 'center' as const, valign: 'middle' as const } }
+                ],
+                [
+                    ...matrixData.subjects.flatMap(() => ['CC', 'CA']),
+                    'CC', 'CA'
+                ]
+            ];
+
+            const body = globalStudentStats.map((s: any, i: number) => {
+                let totalSCC = 0;
+                let totalSCA = 0;
+                const matrixCols = matrixData.subjects.flatMap(subj => {
+                    const cc = matrixData.subjectCC[subj] || 0;
+                    const ca = (matrixData.studentCA[s.regNo] && matrixData.studentCA[s.regNo][subj]) || 0;
+                    totalSCC += cc;
+                    totalSCA += ca;
+                    return [cc, ca];
+                });
+
+                return [
+                    i + 1,
+                    s.regNo,
+                    s.name,
+                    ...matrixCols,
+                    totalSCC,
+                    totalSCA,
+                    (totalSCC > 0 ? Math.round((totalSCA / totalSCC) * 100) : 0) + '%'
+                ];
+            });
 
             autoTable(doc, {
-                startY: 55,
-                head: [['S.No', 'Reg No', 'Name', 'Present', 'Total', '%']],
-                body: globalStudentStats.map((s: any, i: number) => [
-                    i + 1, s.regNo, s.name, s.present, s.total, `${s.percent}%`
-                ]),
+                startY: 35,
+                head: heads,
+                body: body,
                 theme: 'grid',
-                headStyles: { fillColor: [37, 99, 235] }
+                styles: {
+                    fontSize: 7,
+                    cellPadding: 2,
+                    lineWidth: 0.1,
+                    lineColor: [200, 200, 200]
+                },
+                headStyles: {
+                    fillColor: [245, 245, 245],
+                    textColor: [0, 0, 0],
+                    fontStyle: 'bold',
+                    lineWidth: 0.1,
+                    lineColor: [150, 150, 150]
+                },
+                columnStyles: {
+                    0: { cellWidth: 10 },
+                    1: { cellWidth: 25 },
+                    2: { cellWidth: 40 }
+                }
             });
 
             doc.save(`${fileName}.pdf`);
@@ -420,6 +605,8 @@ export default function AnalyticsPage() {
         }
     };
 
+    if (!mounted) return <></>;
+
     return (
         <div className="p-4 md:p-6 max-w-[100vw] mx-auto space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-200">
             {/* Header & Filters */}
@@ -435,7 +622,7 @@ export default function AnalyticsPage() {
 
                     {/* Filter Controls */}
                     <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                        <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 w-full sm:w-auto">
                             <select
                                 value={selectedBranch}
                                 onChange={(e) => setSelectedBranch(e.target.value)}
@@ -453,6 +640,14 @@ export default function AnalyticsPage() {
                                 {[1, 2, 3, 4].map(y => (
                                     <option key={y} value={y}>{y === 1 ? '1st' : y === 2 ? '2nd' : y === 3 ? '3rd' : '4th'} Year</option>
                                 ))}
+                            </select>
+                            <select
+                                value={selectedSemester}
+                                onChange={(e) => setSelectedSemester(e.target.value)}
+                                className="input-field py-2 text-sm w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                            >
+                                <option value="1">Sem 1</option>
+                                <option value="2">Sem 2</option>
                             </select>
                             <select
                                 value={selectedSection}
@@ -707,18 +902,33 @@ export default function AnalyticsPage() {
                 </div>
             </div>
 
-            {/* Detailed Student List */}
+            {/* Detailed Student Report Section */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <h3 className="font-semibold text-gray-800 dark:text-gray-200">Detailed Student Report</h3>
+                    <div>
+                        <h3 className="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                            <FileSpreadsheet className="w-5 h-5 text-green-600" />
+                            Detailed Student Report (CC/CA Matrix)
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider">
+                            {selectedBranch} - {selectedYear} Year - Sem {selectedSemester} - Section {selectedSection}
+                        </p>
+                    </div>
                     <div className="flex items-center gap-3">
                         <div className="relative">
+                            <button
+                                onClick={() => window.print()}
+                                className="flex items-center gap-2 text-gray-600 dark:text-gray-300 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-2 rounded-lg transition-colors border border-gray-200 dark:border-gray-700"
+                            >
+                                <Printer className="w-4 h-4" />
+                                Print
+                            </button>
                             <button
                                 onClick={() => setShowDownloadMenu(!showDownloadMenu)}
                                 className="flex items-center gap-2 text-primary-600 dark:text-primary-400 text-sm font-medium hover:bg-primary-50 dark:hover:bg-primary-900/30 px-3 py-2 rounded-lg transition-colors border border-primary-100 dark:border-primary-800"
                             >
                                 <Download className="w-4 h-4" />
-                                Download Report
+                                Export
                                 <ChevronDown className="w-4 h-4" />
                             </button>
 
@@ -731,60 +941,126 @@ export default function AnalyticsPage() {
                                         <FileText className="w-4 h-4 text-red-500" />
                                         PDF Document
                                     </button>
+                                    {/* Excel/CSV logic would need update for matrix, keeping as is or disabling for now */}
                                     <button
                                         onClick={() => handleDownloadReport('excel')}
                                         className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center gap-2"
                                     >
                                         <FileSpreadsheet className="w-4 h-4 text-green-600" />
-                                        Excel (.xlsx)
-                                    </button>
-                                    <button
-                                        onClick={() => handleDownloadReport('csv')}
-                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center gap-2"
-                                    >
-                                        <FileSpreadsheet className="w-4 h-4 text-blue-500" />
-                                        Google Sheets (.csv)
+                                        Excel Matrix
                                     </button>
                                 </div>
                             )}
                         </div>
                     </div>
                 </div>
+
                 <div className="overflow-x-auto scrollbar-hide">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead className="bg-gray-50 dark:bg-gray-700">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">S.No</th>
-                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Reg No</th>
-                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
-                                <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Classes Attended</th>
-                                <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Percentage</th>
+                    <table className="min-w-full text-xs border-collapse">
+                        <thead>
+                            <tr className="bg-gray-100 dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700">
+                                <th rowSpan={2} className="p-3 border-r min-w-[50px] sticky left-0 bg-gray-100 dark:bg-gray-900 z-20 text-center font-bold">S.No</th>
+                                <th rowSpan={2} className="p-3 border-r min-w-[120px] sticky left-[50px] bg-gray-100 dark:bg-gray-900 z-20 text-left font-bold">Registration No</th>
+                                <th rowSpan={2} className="p-3 border-r min-w-[200px] text-left font-bold bg-gray-50 dark:bg-gray-800">Student Name</th>
+
+                                {matrixData.subjects.map((subj) => {
+                                    const isAssignedToMe = subjectAssignments[subj]?.uid === currentUser?.uid;
+                                    return (
+                                        <th key={subj} colSpan={2} className={`p-2 border-r text-center font-bold ${isAssignedToMe ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 ring-2 ring-inset ring-purple-500' : 'bg-blue-50/50 dark:bg-blue-900/10 text-blue-800 dark:text-blue-300'} uppercase text-[10px] break-words max-w-[100px] transition-all`}>
+                                            <div className="flex flex-col items-center gap-1">
+                                                <span>{subj}</span>
+                                                {isAssignedToMe && (
+                                                    <span className="text-[7px] bg-purple-600 text-white px-1 rounded-full animate-pulse">YOU</span>
+                                                )}
+                                            </div>
+                                        </th>
+                                    );
+                                })}
+
+                                <th colSpan={2} className="p-2 border-r text-center font-bold bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 font-mono">TOTAL</th>
+                                <th rowSpan={2} className="p-2 text-center text-red-600 font-bold bg-red-50 dark:bg-red-900/10">%</th>
+                            </tr>
+                            <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700 text-[10px]">
+                                {matrixData.subjects.map((subj) => {
+                                    const isAssignedToMe = subjectAssignments[subj]?.uid === currentUser?.uid;
+                                    return (
+                                        <React.Fragment key={`${subj}-sub`}>
+                                            <th className={`p-1 border-r text-center w-10 text-gray-500 font-normal ${isAssignedToMe ? 'bg-purple-50 dark:bg-purple-900/20' : ''}`}>CC</th>
+                                            <th className={`p-1 border-r text-center w-10 font-bold ${isAssignedToMe ? 'bg-purple-50 dark:bg-purple-900/20' : ''}`}>CA</th>
+                                        </React.Fragment>
+                                    );
+                                })}
+                                <th className="p-1 border-r text-center w-10 text-gray-500 bg-green-50/20">CC</th>
+                                <th className="p-1 border-r text-center w-10 font-bold bg-green-50/20">CA</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            {globalStudentStats.map((student: any, idx: number) => (
-                                <tr key={student.regNo} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{idx + 1}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-100">{student.regNo}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{student.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-600 dark:text-gray-300">
-                                        <span className="font-medium text-gray-900 dark:text-gray-100">{student.present}</span>
-                                        <span className="text-gray-400 mx-1">/</span>
-                                        <span>{student.total}</span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${student.percent >= 75 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                                            student.percent >= 65 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                                                'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                                            }`}>
-                                            {student.percent}%
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
+                            {/* Conducting Totals Row */}
+                            <tr className="bg-yellow-50/30 dark:bg-yellow-900/5 font-bold">
+                                <td className="p-2 border-r sticky left-0 bg-yellow-50/30 dark:bg-yellow-900/5 z-10">-</td>
+                                <td className="p-2 border-r sticky left-[50px] bg-yellow-50/30 dark:bg-yellow-900/5 z-10">-</td>
+                                <td className="p-2 border-r italic text-gray-400">Conducting Totals (CC)</td>
+                                {matrixData.subjects.map(subj => {
+                                    const isAssignedToMe = subjectAssignments[subj]?.uid === currentUser?.uid;
+                                    return (
+                                        <React.Fragment key={`${subj}-cc-row`}>
+                                            <td className={`p-2 border-r text-center text-blue-600 ${isAssignedToMe ? 'bg-purple-50 dark:bg-purple-900/20' : ''}`}>{matrixData.subjectCC[subj] || 0}</td>
+                                            <td className={`p-2 border-r text-center text-gray-300 ${isAssignedToMe ? 'bg-purple-50 dark:bg-purple-900/20' : ''}`}>-</td>
+                                        </React.Fragment>
+                                    );
+                                })}
+                                <td className="p-2 border-r text-center text-green-700 bg-green-50/30">
+                                    {Object.values(matrixData.subjectCC).reduce((a, b) => a + (b || 0), 0)}
+                                </td>
+                                <td className="p-2 border-r text-center text-gray-300 bg-green-50/30">-</td>
+                                <td className="p-2 text-center text-gray-300">-</td>
+                            </tr>
+
+                            {globalStudentStats.map((student: any, idx: number) => {
+                                let totalSCA = 0;
+                                let totalSCC = 0;
+
+                                return (
+                                    <tr key={student.regNo} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                        <td className="p-2 border-r text-center text-gray-400 sticky left-0 bg-white dark:bg-gray-800 z-10">{idx + 1}</td>
+                                        <td className="p-2 border-r font-mono font-medium sticky left-[50px] bg-white dark:bg-gray-800 z-10">{student.regNo}</td>
+                                        <td className="p-2 border-r truncate max-w-[200px] text-gray-900 dark:text-gray-100">{student.name}</td>
+
+                                        {matrixData.subjects.map((subj) => {
+                                            const cc = matrixData.subjectCC[subj] || 0;
+                                            const ca = (matrixData.studentCA[student.regNo] && matrixData.studentCA[student.regNo][subj]) || 0;
+                                            const isAssignedToMe = subjectAssignments[subj]?.uid === currentUser?.uid;
+
+                                            totalSCC += cc;
+                                            totalSCA += ca;
+
+                                            const subPercent = cc > 0 ? (ca / cc) * 100 : 0;
+                                            const colorClass = cc === 0 ? 'text-gray-300' : subPercent < 65 ? 'text-red-600 font-bold' : subPercent < 75 ? 'text-orange-500' : 'text-green-600';
+
+                                            return (
+                                                <React.Fragment key={`${student.regNo}-${subj}`}>
+                                                    <td className={`p-2 border-r text-center text-gray-400 text-[10px] ${isAssignedToMe ? 'bg-purple-50/50 dark:bg-purple-900/10' : ''}`}>{cc}</td>
+                                                    <td className={`p-2 border-r text-center font-bold ${colorClass} ${isAssignedToMe ? 'bg-purple-50/50 dark:bg-purple-900/10' : ''}`}>{ca}</td>
+                                                </React.Fragment>
+                                            );
+                                        })}
+
+                                        <td className="p-2 border-r text-center font-bold text-gray-700 dark:text-gray-400 bg-gray-50/50 dark:bg-gray-900/20">{totalSCC}</td>
+                                        <td className="p-2 border-r text-center font-black text-gray-900 dark:text-white bg-gray-50/50 dark:bg-gray-900/20">{totalSCA}</td>
+                                        <td className={`p-2 text-center font-bold ${(totalSCC > 0 ? (totalSCA / totalSCC) * 100 : 0) < 65 ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+                                            {totalSCC > 0 ? Math.round((totalSCA / totalSCC) * 100) : 0}%
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
+                {globalStudentStats.length === 0 && (
+                    <div className="p-12 text-center text-gray-500">
+                        No student data available for the selected criteria.
+                    </div>
+                )}
             </div>
         </div>
     );

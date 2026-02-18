@@ -3,8 +3,18 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import {
-    User, BarChart3, Presentation, LogOut, Users,
-    X, CheckCircle, Clock, Calendar as CalendarIcon, ClipboardCheck
+    User,
+    BarChart3,
+    Presentation,
+    LogOut,
+    Users,
+    X,
+    CheckCircle,
+    Clock,
+    Calendar as CalendarIcon,
+    ClipboardCheck,
+    BookOpen,
+    FileSpreadsheet
 } from 'lucide-react';
 import studentData from '@/data/students.json';
 import { DashboardSkeleton } from '@/components/ui/Skeleton';
@@ -239,6 +249,34 @@ export default function FacultyDashboard() {
                                                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">Enter Marks</h3>
                                             </div>
                                             <p className="text-gray-600 dark:text-gray-400 text-sm">Record marks for assignments, mid-exams, and more.</p>
+                                        </div>
+
+                                        {/* Manage Subjects */}
+                                        <div
+                                            className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-teal-200 dark:hover:border-teal-700 transition-all cursor-pointer group"
+                                            onClick={() => router.push('/dashboard/manage-subjects')}
+                                        >
+                                            <div className="flex items-center gap-4 mb-3">
+                                                <div className="p-3 bg-teal-50 dark:bg-teal-900/20 rounded-lg text-teal-600 dark:text-teal-400 group-hover:bg-teal-600 group-hover:text-white transition-colors">
+                                                    <BookOpen className="w-6 h-6" />
+                                                </div>
+                                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Manage Subjects</h3>
+                                            </div>
+                                            <p className="text-gray-600 dark:text-gray-400 text-sm">Configure syllabus and assign faculty to subjects.</p>
+                                        </div>
+
+                                        {/* Generate Reports */}
+                                        <div
+                                            className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-green-200 dark:hover:border-green-700 transition-all cursor-pointer group"
+                                            onClick={() => router.push('/dashboard/faculty/reports')}
+                                        >
+                                            <div className="flex items-center gap-4 mb-3">
+                                                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg text-green-600 dark:text-green-400 group-hover:bg-green-600 group-hover:text-white transition-colors">
+                                                    <FileSpreadsheet className="w-6 h-6" />
+                                                </div>
+                                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Generate Reports</h3>
+                                            </div>
+                                            <p className="text-gray-600 dark:text-gray-400 text-sm">Download consolidated attendance sheets (CC/CA).</p>
                                         </div>
                                     </div>
                                 </div>

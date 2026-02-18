@@ -488,17 +488,16 @@ export default function AttendancePage() {
             }
 
             setIsSuccess(true);
-            setTimeout(() => setIsSuccess(false), 3000);
+            setTimeout(() => setIsSuccess(false), 5000); // Extension to 5s for better visibility
 
             // Sync to get server timestamps properly
             loadRecentSubmissions();
-
-            alert('Attendance submitted successfully!');
 
         } catch (error) {
             console.error('Error submitting attendance:', error);
             // Rollback optimistic update on error
             loadRecentSubmissions();
+            // Still show error alert for critical failures
             alert('Failed to submit attendance. Please try again.');
         } finally {
             setIsSubmitting(false);
@@ -959,14 +958,38 @@ export default function AttendancePage() {
                         <button
                             onClick={handleSubmitClick}
                             disabled={isSubmitting || attendanceDate > new Date().toISOString().split('T')[0]}
-                            className="flex items-center gap-2 px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all font-medium transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className={`flex items-center gap-2 px-6 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all font-medium transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isSuccess
+                                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                                    : 'bg-primary-600 hover:bg-primary-700 text-white'
+                                }`}
                         >
-                            <Save className="w-5 h-5" />
+                            {isSuccess ? <CheckCircle className="w-5 h-5 animate-in zoom-in" /> : <Save className="w-5 h-5" />}
                             {attendanceDate > new Date().toISOString().split('T')[0] ? 'Future Date Restricted' : isSubmitting ? 'Saving...' : isSuccess ? 'Saved Successfully!' : isEditMode ? 'Update Attendance' : 'Submit Attendance'}
                         </button>
                     </div>
                 )}
             </div>
+
+            {/* Success Notification Toast */}
+            {isSuccess && (
+                <div className="fixed bottom-20 md:bottom-10 left-1/2 transform -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-bottom-4 duration-300">
+                    <div className="bg-green-600 dark:bg-green-500 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-white/20 backdrop-blur-sm min-w-[300px]">
+                        <div className="bg-white/20 p-2 rounded-full">
+                            <CheckCircle className="w-6 h-6" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="font-bold text-lg leading-tight text-white">Submitted Successfully!</h3>
+                            <p className="text-sm text-green-50 opacity-90">Records have been updated in real-time.</p>
+                        </div>
+                        <button
+                            onClick={() => setIsSuccess(false)}
+                            className="p-1 hover:bg-white/10 rounded-lg transition-colors"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
