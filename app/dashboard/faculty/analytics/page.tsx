@@ -493,6 +493,7 @@ export default function AnalyticsPage() {
             doc.setFontSize(10);
             doc.text(`Branch: ${selectedBranch} | Year: ${selectedYear} | Section: ${selectedSection}`, 14, 22);
             doc.text(`Date Range: ${formatDate(startDate)} to ${formatDate(endDate)} | Sem: ${selectedSemester}`, 14, 28);
+            doc.text(`Downloaded: ${new Date().toLocaleString()}`, 14, 34);
 
             const heads = [
                 [
@@ -609,6 +610,58 @@ export default function AnalyticsPage() {
 
     return (
         <div className="p-4 md:p-6 max-w-[100vw] mx-auto space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-200">
+            <style type="text/css" media="print">
+                {`
+                  @page { size: landscape; margin: 5mm; }
+                  body * {
+                    visibility: hidden;
+                  }
+                  #printable-report, #printable-report * {
+                    visibility: visible;
+                  }
+                  #printable-report {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 100%;
+                    margin: 0;
+                    padding: 0;
+                    background: white !important;
+                    color: black !important;
+                    border: none !important;
+                    box-shadow: none !important;
+                  }
+                  /* Hide buttons and scrollbars in print */
+                  #printable-report button {
+                    display: none !important;
+                  }
+                  /* Force table to show all content */
+                  #printable-report .overflow-x-auto {
+                    overflow: visible !important;
+                  }
+                  /* Adjust Colors for Print */
+                  #printable-report table {
+                    border-collapse: collapse !important;
+                    width: 100% !important;
+                  }
+                  #printable-report th, #printable-report td {
+                    border: 1px solid #000 !important;
+                    color: #000 !important;
+                  }
+                  /* Remove background colors for cleaner print */
+                  #printable-report tr {
+                    background-color: transparent !important;
+                  }
+                  #printable-report .bg-purple-100, 
+                  #printable-report .bg-blue-50, 
+                  #printable-report .bg-gray-100,
+                  #printable-report .bg-yellow-50,
+                  #printable-report .bg-green-50,
+                  #printable-report .bg-red-50 {
+                    background-color: transparent !important;
+                  }
+                `}
+            </style>
             {/* Header & Filters */}
             <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
@@ -903,16 +956,21 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Detailed Student Report Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div id="printable-report" className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div>
-                        <h3 className="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                             <FileSpreadsheet className="w-5 h-5 text-green-600" />
-                            Detailed Student Report (CC/CA Matrix)
+                            ALIET Attendance Detailed Report
                         </h3>
-                        <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider">
-                            {selectedBranch} - {selectedYear} Year - Sem {selectedSemester} - Section {selectedSection}
-                        </p>
+                        <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                            <p>
+                                <strong>Branch:</strong> {selectedBranch} | <strong>Year:</strong> {selectedYear} | <strong>Section:</strong> {selectedSection}
+                            </p>
+                            <p className="mt-1">
+                                <strong>Date Range:</strong> {formatDate(startDate)} to {formatDate(endDate)} | <strong>Sem:</strong> {selectedSemester} | <strong>Time:</strong> {new Date().toLocaleString()}
+                            </p>
+                        </div>
                     </div>
                     <div className="flex items-center gap-3">
                         <div className="relative">
